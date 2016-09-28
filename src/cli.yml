@@ -1,0 +1,78 @@
+# MIT License
+#
+# Copyright (c) 2016 Alexander Thaller <alexander.thaller@trivago.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+name: lablog
+author: Alexander Thaller <alexander@thaller.ws>
+about: lablog orders notes and todos into projects and subprojects without dictating a specific format
+settings:
+  - ColorAuto
+args:
+    - log_level:
+        help: the loglevel to run under
+        long: log.level
+        short: l
+        takes_value: true
+        default_value: debug
+        value_name: level
+        possible_values: [ trace, debug, info, warn, error ]
+        global: true
+    - datadir:
+        help: the path to the lablog data dir
+        long: datadir
+        short: D
+        takes_value: true
+        default_value: "$XDG_DATA_HOME/lablog"
+        value_name: path
+        global: true
+subcommands:
+  - note:
+      about: add a note to lablog
+      args:
+        - project:
+            help: the project to which to add the note to
+            takes_value: true
+            value_name: project
+            required: true
+            index: 1
+        - text:
+            help: the text for the note
+            takes_value: true
+            value_name: text
+            index: 2
+            conflicts_with:
+              - file
+              - editor
+        - file:
+            help: the file from which to read the note from
+            long: file
+            short: f
+            takes_value: true
+            value_name: path
+            conflicts_with:
+              - text
+              - editor
+        - editor:
+            help: open the default editor for writing the note
+            long: editor
+            short: e
+              - text
+              - file
