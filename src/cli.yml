@@ -26,12 +26,12 @@ about: lablog orders notes and todos into projects and subprojects without dicta
 settings:
   - ColorAuto
 args:
-    - log_level:
+    - loglevel:
         help: the loglevel to run under
-        long: log.level
+        long: loglevel
         short: l
         takes_value: true
-        default_value: debug
+        default_value: info
         value_name: level
         possible_values: [ trace, debug, info, warn, error ]
         global: true
@@ -76,3 +76,13 @@ subcommands:
             short: e
               - text
               - file
+  - notes:
+      about: list all saved notes
+      args:
+        - project:
+            help: the project for which to list the notes for
+            takes_value: true
+            value_name: project
+            index: 1
+  - projects:
+      about: list all projects available

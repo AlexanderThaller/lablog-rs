@@ -7,6 +7,11 @@ authors = ["Alexander Thaller <alexander@thaller.ws>"]
 log = "*"
 loggerv = "*"
 env_logger = "*"
+xdg = "^2.0"
+csv = "0.14"
+rustc-serialize = "0.3"
+chrono = { version = "0.2", features = ["rustc-serialize"] }
+walkdir = "0.1"
 
 [dependencies.clap]
 version = "*"
