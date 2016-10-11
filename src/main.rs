@@ -82,7 +82,7 @@ fn run(args: Args) {
                 }
             }
         }
-        None => list_notes(args),
+        None => list_projects(args),
     }
 }
 
@@ -113,25 +113,52 @@ fn add_note(args: Args) {
 
 fn list_notes(args: Args) {
     trace!("list_notes args: {:#?}", args);
-    let mut datadir = get_datadir(&args);
-    let project = args.value_of("project").unwrap();
-    debug!("project: {}", project);
+    let datadir = get_datadir(&args);
+    let project_arg = args.value_of("project").unwrap();
+    debug!("project_arg: {}", project_arg);
 
-    datadir.push(normalize_project_path(project));
+    let projects = match project_arg {
+        "" => get_projects(&datadir),
+        _ => {
+            let mut out = Set::default();
+            out.insert(project_arg.into());
+            out
+        }
+    };
 
-    let notes = get_notes(datadir);
-    trace!("notes: {:#?}", notes);
+    let project_notes = get_projects_notes(&datadir, &projects);
 
-    for (time_stamp, note) in notes {
-        println!("= {}\n{}\n", time_stamp, note.value)
+    trace!("project_notes: {:#?}", project_notes);
+
+    for (project, notes) in project_notes {
+        println!("= {}", project);
+        for (time_stamp, note) in notes {
+            println!("== {}\n{}\n", time_stamp, note.value)
+        }
     }
+}
+
+fn get_projects_notes<'a>(datadir: &PathBuf,
+                          projects: &'a Set<String>)
+                          -> Map<&'a str, Map<DateTime<UTC>, Note>> {
+    let mut map = Map::default();
+
+    for project in projects.iter().map(|x| x.as_str()) {
+        let mut project_path = datadir.clone();
+        project_path.push(normalize_project_path(project));
+
+        let notes = get_notes(project_path);
+        map.insert(project.clone(), notes);
+    }
+
+    map
 }
 
 fn list_projects(args: Args) {
     trace!("list_projects args: {:#?}", args);
     let datadir = get_datadir(&args);
 
-    let projects = get_projects(datadir);
+    let projects = get_projects(&datadir);
     trace!("projects: {:#?}", projects);
 
     for project in projects {
@@ -139,7 +166,7 @@ fn list_projects(args: Args) {
     }
 }
 
-fn get_projects(datadir: PathBuf) -> Set<String> {
+fn get_projects(datadir: &PathBuf) -> Set<String> {
     let ok_walkdir: Vec<walkdir::DirEntry> = WalkDir::new(&datadir)
         .into_iter()
         .filter_map(|e| e.ok())

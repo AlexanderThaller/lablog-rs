@@ -84,5 +84,6 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
+            default_value: ""
   - projects:
       about: list all projects available
