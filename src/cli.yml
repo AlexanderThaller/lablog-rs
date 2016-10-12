@@ -87,3 +87,12 @@ subcommands:
             default_value: ""
   - projects:
       about: list all projects available
+  - migrate:
+      about: migrate from the old csv format to the new one
+      args:
+        - sourcedir:
+            help: the folder from which to read the old files
+            long: sourcedir
+            short: S
+            takes_value: true
+            value_name: path

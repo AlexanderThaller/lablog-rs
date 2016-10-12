@@ -76,6 +76,7 @@ fn run(args: Args) {
                 "note" => add_note(command.matches),
                 "notes" => list_notes(command.matches),
                 "projects" => list_projects(command.matches),
+                "migrate" => migrate_notes(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -83,6 +84,60 @@ fn run(args: Args) {
             }
         }
         None => list_projects(args),
+    }
+}
+
+fn migrate_notes(args: Args) {
+    let datadir = get_datadir(&args);
+    let sourcedir = PathBuf::from(args.value_of("sourcedir").unwrap());
+    debug!("datadir: {:#?}", datadir);
+    debug!("sourcedir: {:#?}", sourcedir);
+
+    for file in WalkDir::new(&sourcedir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_file())
+        .filter(|e| match e.path().extension() {
+            Some(ext) => ext.to_str().unwrap() == "csv",
+            None => false,
+        })
+        .filter(|e| {
+            !e.path().strip_prefix(&sourcedir).unwrap().to_str().unwrap().starts_with(".")
+        }) {
+        debug!("file: {:#?}", file.path());
+
+        let mut rdr =
+            csv::Reader::from_file(file.path()).unwrap().has_headers(false).flexible(true);
+
+        for record in rdr.decode() {
+            let (entry_type, time_stamp_raw, value): (String, String, String) = record.unwrap();
+            trace!("entry_type: {}", entry_type);
+            trace!("time_stamp_raw: {}", time_stamp_raw);
+            trace!("value: {}", value);
+
+            if entry_type != "note" {
+                continue;
+            }
+
+            let project = file.path()
+                .clone()
+                .strip_prefix(&sourcedir).unwrap()
+                .with_extension("")
+                .to_str()
+                .unwrap()
+                .replace("/", PROJECT_SEPPERATOR);
+
+            let time_stamp = time_stamp_raw.as_str().parse().unwrap();
+
+            let note = Note {
+                time_stamp: time_stamp,
+                value: value,
+            };
+            trace!("datadir: {:#?}", datadir);
+            trace!("project: {:#?}", project);
+
+            write_note(&datadir, project.as_str(), note);
+        }
     }
 }
 
@@ -100,15 +155,18 @@ fn get_datadir(args: &Args) -> PathBuf {
 
 fn add_note(args: Args) {
     trace!("add_note args: {:#?}", args);
-    let mut datadir = get_datadir(&args);
+    let datadir = get_datadir(&args);
     let text = args.value_of("text").unwrap();
     let project = args.value_of("project").unwrap();
     debug!("project: {}", project);
     debug!("text: {}", text);
 
-    datadir.push(normalize_project_path(project));
+    let note = Note {
+        time_stamp: UTC::now().into(),
+        value: text.into(),
+    };
 
-    write_note(datadir, text)
+    write_note(&datadir, project, note)
 }
 
 fn list_notes(args: Args) {
@@ -176,10 +234,14 @@ fn get_projects(datadir: &PathBuf) -> Set<String> {
 
     let stripped_paths: Vec<PathBuf> = ok_walkdir.iter()
         .filter(|e| e.path().is_file())
+        .filter(|e| match e.path().extension() {
+            Some(ext) => ext.to_str().unwrap() == "csv",
+            None => false,
+        })
         .map(|e| e.path().strip_prefix(&datadir))
         .filter_map(|e| e.ok())
+        .filter(|e| !e.to_str().unwrap().starts_with("."))
         .map(|e| e.with_extension(""))
-        .filter(|e| !e.starts_with("."))
         .collect();
 
     trace!("stripped_paths: {:#?}", stripped_paths);
@@ -212,7 +274,10 @@ fn normalize_project_path(project: &str) -> String {
     format!("{}.csv", project.replace(".", "/").as_str())
 }
 
-fn write_note(project_path: PathBuf, text: &str) {
+fn write_note(datadir: &PathBuf, project: &str, note: Note) {
+    let mut project_path = datadir.clone();
+    project_path.push(normalize_project_path(project));
+
     trace!("project_path: {:#?}", project_path);
     fs::create_dir_all(project_path.parent().unwrap()).unwrap();
 
@@ -221,13 +286,8 @@ fn write_note(project_path: PathBuf, text: &str) {
         Err(_) => OpenOptions::new().append(true).create(true).open(&project_path).unwrap(),
     };
 
-    let record = Note {
-        time_stamp: UTC::now(),
-        value: text.into(),
-    };
-
     let mut wtr = csv::Writer::from_memory();
-    wtr.encode(record).unwrap();
+    wtr.encode(note).unwrap();
     file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
 }
 
