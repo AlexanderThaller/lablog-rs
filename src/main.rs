@@ -104,13 +104,24 @@ fn migrate_notes(args: Args) {
         .filter(|e| {
             !e.path().strip_prefix(&sourcedir).unwrap().to_str().unwrap().starts_with(".")
         }) {
-        debug!("file: {:#?}", file.path());
+        trace!("file: {:#?}", file.path());
+
+        let project = file.path()
+            .clone()
+            .strip_prefix(&sourcedir)
+            .unwrap()
+            .with_extension("")
+            .to_str()
+            .unwrap()
+            .replace("/", PROJECT_SEPPERATOR);
+
+        info!("Migrating project {}", project);
 
         let mut rdr =
             csv::Reader::from_file(file.path()).unwrap().has_headers(false).flexible(true);
-
         for record in rdr.decode() {
             let (entry_type, time_stamp_raw, value): (String, String, String) = record.unwrap();
+
             trace!("entry_type: {}", entry_type);
             trace!("time_stamp_raw: {}", time_stamp_raw);
             trace!("value: {}", value);
@@ -118,14 +129,6 @@ fn migrate_notes(args: Args) {
             if entry_type != "note" {
                 continue;
             }
-
-            let project = file.path()
-                .clone()
-                .strip_prefix(&sourcedir).unwrap()
-                .with_extension("")
-                .to_str()
-                .unwrap()
-                .replace("/", PROJECT_SEPPERATOR);
 
             let time_stamp = time_stamp_raw.as_str().parse().unwrap();
 
@@ -135,8 +138,43 @@ fn migrate_notes(args: Args) {
             };
             trace!("datadir: {:#?}", datadir);
             trace!("project: {:#?}", project);
+            trace!("note: {:#?}", note);
 
             write_note(&datadir, project.as_str(), note);
+        }
+
+        let mut rdr =
+            csv::Reader::from_file(file.path()).unwrap().has_headers(false).flexible(true);
+        for record in rdr.decode() {
+            match record {
+                Ok(_) => {}
+                Err(_) => continue,
+            };
+
+            let (entry_type, time_stamp_raw, value1, value2): (String, String, String, String) =
+                record.unwrap();
+
+            trace!("entry_type: {}", entry_type);
+            trace!("time_stamp_raw: {}", time_stamp_raw);
+            trace!("value1: {}", value1);
+            trace!("value2: {}", value2);
+
+            if entry_type != "todo" {
+                warn!("Don't know how to parse this entry type: {}", entry_type);
+                continue;
+            }
+
+            let time_stamp = time_stamp_raw.as_str().parse().unwrap();
+
+            let todo = Note {
+                time_stamp: time_stamp,
+                value: format!("TODO:: {}", value2),
+            };
+            trace!("datadir: {:#?}", datadir);
+            trace!("project: {:#?}", project);
+            trace!("todo: {:#?}", todo);
+
+            write_note(&datadir, project.as_str(), todo);
         }
     }
 }
@@ -275,6 +313,11 @@ fn normalize_project_path(project: &str) -> String {
 }
 
 fn write_note(datadir: &PathBuf, project: &str, note: Note) {
+    if note.value == "" {
+        warn!("Note with empty value");
+        return;
+    }
+
     let mut project_path = datadir.clone();
     project_path.push(normalize_project_path(project));
 
