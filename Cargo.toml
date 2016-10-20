@@ -4,14 +4,18 @@ version = "0.1.0"
 authors = ["Alexander Thaller <alexander@thaller.ws>"]
 
 [dependencies]
+chrono = { version = "0.2", features = ["rustc-serialize"] }
+csv = "0.14"
+env_logger = "*"
+horrorshow = "0.5.8"
+hyper = "*"
+iron = "0.4.*"
 log = "*"
 loggerv = "*"
-env_logger = "*"
-xdg = "^2.0"
-csv = "0.14"
+router = "*"
 rustc-serialize = "0.3"
-chrono = { version = "0.2", features = ["rustc-serialize"] }
 walkdir = "0.1"
+xdg = "^2.0"
 
 [dependencies.clap]
 version = "*"

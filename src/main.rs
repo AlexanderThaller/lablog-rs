@@ -26,24 +26,38 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate horrorshow;
+
 extern crate chrono;
 extern crate csv;
 extern crate env_logger;
+extern crate iron;
 extern crate loggerv;
+extern crate router;
 extern crate rustc_serialize;
 extern crate walkdir;
 extern crate xdg;
+extern crate hyper;
 
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
+use horrorshow::prelude::*;
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel};
+use iron::prelude::*;
+use iron::status;
 use log::LogLevel;
+use router::Router;
 use std::collections::BTreeMap as Map;
-use std::collections::BTreeSet as Set;
+use std::collections::BTreeSet as DataSet;
 use std::fs;
 use std::fs::OpenOptions;
+use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
@@ -77,6 +91,7 @@ fn run(args: Args) {
                 "notes" => list_notes(command.matches),
                 "projects" => list_projects(command.matches),
                 "migrate" => migrate_notes(command.matches),
+                "web" => run_webapp(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -85,6 +100,116 @@ fn run(args: Args) {
         }
         None => list_projects(args),
     }
+}
+
+fn run_webapp(args: Args) {
+    let listen_address = args.value_of("listen_address").unwrap();
+    let datadir = get_datadir(&args);
+    let datadir_clone = datadir.clone();
+    let datadir_clone_clone = datadir.clone();
+
+    let mut router = Router::new();
+    router.get("/",
+               move |r: &mut Request| webapp_projects(r, datadir.clone()),
+               "projects");
+    router.get("/notes/:project",
+               move |r: &mut Request| webapp_notes(r, datadir_clone.clone()),
+               "notes");
+    router.get("/show/entries/:project",
+               move |r: &mut Request| webapp_notes(r, datadir_clone_clone.clone()),
+               "notes_legacy");
+
+    info!("Listening on {}", listen_address);
+    Iron::new(router).http(listen_address).unwrap();
+}
+
+fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
+    let ref project = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
+    debug!("project: {}", project);
+    let projects = projects_or_project(project, &datadir);
+    let notes = get_projects_notes(&datadir, &projects);
+    let notes_f = format_projects_notes(notes);
+
+    let out = format_asciidoc(notes_f);
+
+    let mut resp = Response::with((status::Ok, out));
+    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
+    Ok(resp)
+}
+
+fn format_asciidoc(input: String) -> String {
+    let process = Command::new("asciidoctor")
+        .arg("-")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to execute process");
+
+    process.stdin.unwrap().write_all(input.as_bytes()).unwrap();
+
+    let mut out = String::new();
+    process.stdout.unwrap().read_to_string(&mut out).unwrap();
+    out
+}
+
+fn projects_or_project<'a>(project: &str, datadir: &PathBuf) -> DataSet<String> {
+    match project {
+        "_" => get_projects(datadir),
+        _ => {
+            let mut out = DataSet::default();
+            out.insert(project.into());
+            out
+        }
+    }
+}
+
+fn format_projects_notes<'a>(notes: Map<&'a str, Map<DateTime<UTC>, Note>>) -> String {
+    let mut out = String::new();
+
+    let header = include_str!("notes.header.asciidoc");
+
+    out.push_str(header);
+
+    for (project, notes) in notes {
+        out.push_str(format!("== {}\n", project).as_str());
+        for (time_stamp, note) in notes {
+            out.push_str(format!("=== {}\n{}\n\n", time_stamp, note.value).as_str())
+        }
+    }
+
+    out
+}
+
+fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
+    let projects = get_projects(&datadir);
+
+    let out = html!{
+        html(lang="en") {
+            head {
+                title { : "Lablog - Projects" }
+            }
+            meta(charset="utf-8"){}
+            body {
+                h1 { : "Projects" }
+                table {
+                    @ for project in projects {
+                        tr {
+                            td {
+                                a(href=format_args!("/notes/{}", project)) {
+                                    : project
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    }}
+        .into_string()
+        .unwrap();
+
+    let mut resp = Response::with((status::Ok, out));
+    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
+    Ok(resp)
 }
 
 fn migrate_notes(args: Args) {
@@ -213,29 +338,14 @@ fn list_notes(args: Args) {
     let project_arg = args.value_of("project").unwrap();
     debug!("project_arg: {}", project_arg);
 
-    let projects = match project_arg {
-        "" => get_projects(&datadir),
-        _ => {
-            let mut out = Set::default();
-            out.insert(project_arg.into());
-            out
-        }
-    };
-
+    let projects = projects_or_project(project_arg, &datadir);
     let project_notes = get_projects_notes(&datadir, &projects);
-
     trace!("project_notes: {:#?}", project_notes);
-
-    for (project, notes) in project_notes {
-        println!("= {}", project);
-        for (time_stamp, note) in notes {
-            println!("== {}\n{}\n", time_stamp, note.value)
-        }
-    }
+    println!("{}", format_projects_notes(project_notes));
 }
 
 fn get_projects_notes<'a>(datadir: &PathBuf,
-                          projects: &'a Set<String>)
+                          projects: &'a DataSet<String>)
                           -> Map<&'a str, Map<DateTime<UTC>, Note>> {
     let mut map = Map::default();
 
@@ -262,7 +372,7 @@ fn list_projects(args: Args) {
     }
 }
 
-fn get_projects(datadir: &PathBuf) -> Set<String> {
+fn get_projects(datadir: &PathBuf) -> DataSet<String> {
     let ok_walkdir: Vec<walkdir::DirEntry> = WalkDir::new(&datadir)
         .into_iter()
         .filter_map(|e| e.ok())

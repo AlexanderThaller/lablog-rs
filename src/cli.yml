@@ -84,7 +84,7 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
-            default_value: ""
+            default_value: "_"
   - projects:
       about: list all projects available
   - migrate:
@@ -96,3 +96,13 @@ subcommands:
             short: S
             takes_value: true
             value_name: path
+  - web:
+      about: start a webserver and serve notes over http
+      args:
+        - listen_address:
+            help: the address and port to listen on
+            long: port
+            short: P
+            takes_value: true
+            default_value: "0.0.0.0:18080"
+            value_name: adress:port
