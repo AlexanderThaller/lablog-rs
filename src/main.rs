@@ -365,8 +365,10 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("note: {:#?}", note);
 
-            write_note(&datadir, project.as_str(), &note);
-            git_commit_note(&datadir, project.as_str(), &note);
+            match write_note(&datadir, project.as_str(), &note) {
+             Some(_) => git_commit_note(&datadir, project.as_str(), &note),
+             None => (),
+            }
         }
 
         let mut rdr =
@@ -400,8 +402,10 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("todo: {:#?}", todo);
 
-            write_note(&datadir, project.as_str(), &todo);
-            git_commit_note(&datadir, project.as_str(), &todo);
+            match write_note(&datadir, project.as_str(), &todo) {
+             Some(_) => git_commit_note(&datadir, project.as_str(), &todo),
+             None => (),
+            }
         }
     }
 }
@@ -431,8 +435,10 @@ fn add_note(args: Args) {
         value: text.into(),
     };
 
-    write_note(&datadir, project, &note);
-    git_commit_note(&datadir, project, &note);
+    match write_note(&datadir, project, &note) {
+        Some(_) => git_commit_note(&datadir, project, &note),
+        None => ()
+    }
 }
 
 fn git_commit_note(datadir: &PathBuf, project: &str, note: &Note) {
@@ -537,10 +543,10 @@ fn normalize_project_path(project: &str) -> String {
     format!("{}.csv", project.replace(".", "/").as_str())
 }
 
-fn write_note(datadir: &PathBuf, project: &str, note: &Note) {
+fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
     if note.value == "" {
         warn!("Note with empty value");
-        return;
+        return None;
     }
 
     let mut project_path = datadir.clone();
@@ -557,6 +563,8 @@ fn write_note(datadir: &PathBuf, project: &str, note: &Note) {
     let mut wtr = csv::Writer::from_memory();
     wtr.encode(note).unwrap();
     file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
+
+    Some(())
 }
 
 #[derive(Debug,RustcEncodable,RustcDecodable)]
