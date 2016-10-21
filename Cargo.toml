@@ -7,6 +7,7 @@ authors = ["Alexander Thaller <alexander@thaller.ws>"]
 chrono = { version = "0.2", features = ["rustc-serialize"] }
 csv = "0.14"
 env_logger = "*"
+git2 = "0.5"
 horrorshow = "0.5.8"
 hyper = "*"
 iron = "0.4.*"

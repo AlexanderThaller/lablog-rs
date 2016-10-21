@@ -32,17 +32,19 @@ extern crate horrorshow;
 extern crate chrono;
 extern crate csv;
 extern crate env_logger;
+extern crate git2;
+extern crate hyper;
 extern crate iron;
 extern crate loggerv;
 extern crate router;
 extern crate rustc_serialize;
 extern crate walkdir;
 extern crate xdg;
-extern crate hyper;
 
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
+use git2::{Repository, Error};
 use horrorshow::prelude::*;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -57,6 +59,7 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
@@ -92,6 +95,7 @@ fn run(args: Args) {
                 "projects" => list_projects(command.matches),
                 "migrate" => migrate_notes(command.matches),
                 "web" => run_webapp(command.matches),
+                "repo" => run_git(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -100,6 +104,96 @@ fn run(args: Args) {
         }
         None => list_projects(args),
     }
+}
+
+fn run_git(args: Args) {
+    match args.subcommand.clone() {
+        Some(command) => {
+            match command.name.as_str() {
+                "init" => run_git_init(args),
+                "status" => run_git_status(args),
+                _ => {
+                    error!("do not know what to do with this command: {}",
+                           command.name.as_str())
+                }
+            }
+        }
+        None => run_git_status(args),
+    }
+}
+
+fn run_git_init(args: Args) {
+    let datadir = get_datadir(&args);
+    match Repository::open(&datadir) {
+        Ok(_) => error!("repository is already initialized"),
+        Err(_) => {
+            let repo = match Repository::init(&datadir) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to init repository: {}", e),
+            };
+
+            let mut index = repo.index().unwrap();
+            index.add_all(vec!["*"].iter(), git2::ADD_DEFAULT, None).unwrap();
+            index.write().unwrap();
+            git_commit_init(&repo, "Initial commit").unwrap();
+        }
+    };
+}
+
+fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
+    let signature = try!(repo.signature());
+
+    let mut index = try!(repo.index());
+    let tree_id = try!(index.write_tree());
+    let tree = try!(repo.find_tree(tree_id));
+
+    let head = try!(repo.head());
+    let head_oid = head.target().unwrap();
+    let head_commit = try!(repo.find_commit(head_oid));
+
+    repo.commit(Some("HEAD"),
+                &signature,
+                &signature,
+                &msg,
+                &tree,
+                &[&head_commit])
+}
+
+fn git_commit_init(repo: &Repository, message: &str) -> Result<(), Error> {
+    // First use the config to initialize a commit signature for the user.
+    let sig = try!(repo.signature());
+
+    // Now let's create an empty tree for this commit
+    let tree_id = {
+        let mut index = try!(repo.index());
+
+        // Outside of this example, you could call index.add_path()
+        // here to put actual files into the index. For our purposes, we'll
+        // leave it empty for now.
+
+        try!(index.write_tree())
+    };
+
+    let tree = try!(repo.find_tree(tree_id));
+
+    // Ready to create the initial commit.
+    //
+    // Normally creating a commit would involve looking up the current HEAD
+    // commit and making that be the parent of the initial commit, but here this
+    // is the first commit so there will be no parent.
+    try!(repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[]));
+
+    Ok(())
+}
+
+fn run_git_status(args: Args) {
+    let datadir = get_datadir(&args);
+    let repo = match Repository::open(datadir) {
+        Ok(repo) => repo,
+        Err(e) => panic!("can not open git repository: {}", e),
+    };
+
+    trace!("repo: {:#?}", repo.state());
 }
 
 fn run_webapp(args: Args) {
@@ -126,15 +220,22 @@ fn run_webapp(args: Args) {
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
     let ref project = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
     debug!("project: {}", project);
+
+    let out = format_or_cached(project, &datadir);
+
+    let mut resp = Response::with((status::Ok, out));
+    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
+    Ok(resp)
+}
+
+fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
     let projects = projects_or_project(project, &datadir);
     let notes = get_projects_notes(&datadir, &projects);
     let notes_f = format_projects_notes(notes);
 
     let out = format_asciidoc(notes_f);
 
-    let mut resp = Response::with((status::Ok, out));
-    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
-    Ok(resp)
+    out
 }
 
 fn format_asciidoc(input: String) -> String {
@@ -152,7 +253,7 @@ fn format_asciidoc(input: String) -> String {
     out
 }
 
-fn projects_or_project<'a>(project: &str, datadir: &PathBuf) -> DataSet<String> {
+fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
     match project {
         "_" => get_projects(datadir),
         _ => {
@@ -265,7 +366,7 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("note: {:#?}", note);
 
-            write_note(&datadir, project.as_str(), note);
+            write_note(&datadir, project.as_str(), &note);
         }
 
         let mut rdr =
@@ -299,9 +400,16 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("todo: {:#?}", todo);
 
-            write_note(&datadir, project.as_str(), todo);
+            write_note(&datadir, project.as_str(), &todo);
         }
     }
+}
+
+fn get_cachedir() -> PathBuf {
+    let xdg = BaseDirectories::new().unwrap();
+    let cachedir = xdg.create_cache_directory("lablog").unwrap();
+    debug!("cachedir: {:?}", cachedir);
+    cachedir
 }
 
 fn get_datadir(args: &Args) -> PathBuf {
@@ -329,7 +437,20 @@ fn add_note(args: Args) {
         value: text.into(),
     };
 
-    write_note(&datadir, project, note)
+    write_note(&datadir, project, &note);
+    git_commit_note(&datadir, project, &note);
+}
+
+fn git_commit_note(datadir: &PathBuf, project: &str, note: &Note) {
+    let project_path = normalize_project_path(project);
+
+    let repo = Repository::open(&datadir).unwrap();
+    let mut index = repo.index().unwrap();
+    index.add_path(Path::new(project_path.as_str())).unwrap();
+    index.write().unwrap();
+
+    let commit_message = format!("{} - {} - added", note.time_stamp, project);
+    git_commit(&repo, commit_message.as_str()).unwrap();
 }
 
 fn list_notes(args: Args) {
@@ -422,7 +543,7 @@ fn normalize_project_path(project: &str) -> String {
     format!("{}.csv", project.replace(".", "/").as_str())
 }
 
-fn write_note(datadir: &PathBuf, project: &str, note: Note) {
+fn write_note(datadir: &PathBuf, project: &str, note: &Note) {
     if note.value == "" {
         warn!("Note with empty value");
         return;

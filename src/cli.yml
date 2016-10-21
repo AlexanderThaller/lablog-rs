@@ -106,3 +106,10 @@ subcommands:
             takes_value: true
             default_value: "0.0.0.0:18080"
             value_name: adress:port
+  - repo:
+      about: manage the repo for the notes
+      subcommands:
+        - status:
+            about: show the status of the repository
+        - init:
+            about: initialize a new repository and add all current files in it
