@@ -110,34 +110,42 @@ fn run_git(args: Args) {
     match args.subcommand.clone() {
         Some(command) => {
             match command.name.as_str() {
-                "init" => run_git_init(args),
-                "status" => run_git_status(args),
+                "init" => run_git_init(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
                 }
             }
         }
-        None => run_git_status(args),
+        None => (),
     }
 }
 
 fn run_git_init(args: Args) {
     let datadir = get_datadir(&args);
-    match Repository::open(&datadir) {
-        Ok(_) => error!("repository is already initialized"),
-        Err(_) => {
-            let repo = match Repository::init(&datadir) {
-                Ok(repo) => repo,
-                Err(e) => panic!("failed to init repository: {}", e),
-            };
-
-            let mut index = repo.index().unwrap();
-            index.add_all(vec!["*"].iter(), git2::ADD_DEFAULT, None).unwrap();
-            index.write().unwrap();
-            git_commit_init(&repo, "Initial commit").unwrap();
+    match args.value_of("remote") {
+        Some(remote) => {
+            Repository::clone(remote, datadir).unwrap();
+            ()
         }
-    };
+        None => {
+
+            match Repository::open(&datadir) {
+                Ok(_) => error!("repository is already initialized"),
+                Err(_) => {
+                    let repo = match Repository::init(&datadir) {
+                        Ok(repo) => repo,
+                        Err(e) => panic!("failed to init repository: {}", e),
+                    };
+
+                    let mut index = repo.index().unwrap();
+                    index.add_all(vec!["*"].iter(), git2::ADD_DEFAULT, None).unwrap();
+                    index.write().unwrap();
+                    git_commit_init(&repo, "Initial commit").unwrap();
+                }
+            };
+        }
+    }
 }
 
 fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
@@ -186,16 +194,6 @@ fn git_commit_init(repo: &Repository, message: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn run_git_status(args: Args) {
-    let datadir = get_datadir(&args);
-    let repo = match Repository::open(datadir) {
-        Ok(repo) => repo,
-        Err(e) => panic!("can not open git repository: {}", e),
-    };
-
-    trace!("repo: {:#?}", repo.state());
-}
-
 fn run_webapp(args: Args) {
     let listen_address = args.value_of("listen_address").unwrap();
     let datadir = get_datadir(&args);
@@ -229,6 +227,7 @@ fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Re
 }
 
 fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
+    // TODO: Implement the cacheing
     let projects = projects_or_project(project, &datadir);
     let notes = get_projects_notes(&datadir, &projects);
     let notes_f = format_projects_notes(notes);
@@ -367,6 +366,7 @@ fn migrate_notes(args: Args) {
             trace!("note: {:#?}", note);
 
             write_note(&datadir, project.as_str(), &note);
+            git_commit_note(&datadir, project.as_str(), &note);
         }
 
         let mut rdr =
@@ -401,15 +401,9 @@ fn migrate_notes(args: Args) {
             trace!("todo: {:#?}", todo);
 
             write_note(&datadir, project.as_str(), &todo);
+            git_commit_note(&datadir, project.as_str(), &todo);
         }
     }
-}
-
-fn get_cachedir() -> PathBuf {
-    let xdg = BaseDirectories::new().unwrap();
-    let cachedir = xdg.create_cache_directory("lablog").unwrap();
-    debug!("cachedir: {:?}", cachedir);
-    cachedir
 }
 
 fn get_datadir(args: &Args) -> PathBuf {

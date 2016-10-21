@@ -109,7 +109,12 @@ subcommands:
   - repo:
       about: manage the repo for the notes
       subcommands:
-        - status:
-            about: show the status of the repository
         - init:
             about: initialize a new repository and add all current files in it
+            args:
+              - remote:
+                  help: initialize the repo with the given remote
+                  long: remote
+                  short: R
+                  takes_value: true
+                  value_name: address
