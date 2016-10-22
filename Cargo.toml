@@ -18,6 +18,8 @@ router = "*"
 rustc-serialize = "0.3"
 walkdir = "0.1"
 xdg = "^2.0"
+tempdir = "0.3"
+libc = "*"
 
 [dependencies.clap]
 version = "*"

@@ -35,10 +35,12 @@ extern crate env_logger;
 extern crate git2;
 extern crate hyper;
 extern crate iron;
+extern crate libc;
 extern crate loggerv;
 extern crate regex;
 extern crate router;
 extern crate rustc_serialize;
+extern crate tempdir;
 extern crate walkdir;
 extern crate xdg;
 
@@ -56,13 +58,17 @@ use regex::Regex;
 use router::Router;
 use std::collections::BTreeMap as Map;
 use std::collections::BTreeSet as DataSet;
+use std::env;
 use std::fs;
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Read;
+use std::io::Result as IOResult;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use tempdir::TempDir;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
@@ -431,8 +437,27 @@ fn get_datadir(args: &Args) -> PathBuf {
 fn add_note(args: Args) {
     trace!("add_note args: {:#?}", args);
     let datadir = get_datadir(&args);
-    let text = args.value_of("text").unwrap();
     let project = args.value_of("project").unwrap();
+
+    let text = match args.is_present("editor") {
+        true => string_from_editor(),
+        false => {
+            match args.value_of("file") {
+                Some(file_path) => {
+                    let file_text = file_to_string(Path::new(file_path)).unwrap();
+                    trace!("text from file: {}", file_text);
+                    file_text
+                }
+                None => {
+                    match args.value_of("text") {
+                        Some(text) => String::from(text),
+                        None => String::from(""),
+                    }
+                }
+            }
+        }
+    };
+
     debug!("project: {}", project);
     debug!("text: {}", text);
 
@@ -444,6 +469,29 @@ fn add_note(args: Args) {
     match write_note(&datadir, project, &note) {
         Some(_) => git_commit_note(&datadir, project, &note),
         None => (),
+    }
+}
+
+fn string_from_editor() -> String {
+    let tmpdir = TempDir::new("lablog_tmp").unwrap();
+    let tmppath = tmpdir.path().join("note.asciidoc");
+    let editor = match env::var("VISUAL") {
+        Ok(val) => val,
+        Err(_) => {
+            match env::var("EDITOR") {
+                Ok(val) => val,
+                Err(_) => panic!("Neither $VISUAL nor $EDITOR is set."),
+            }
+        }
+    };
+
+    let mut editor_command = Command::new(editor);
+    editor_command.arg(tmppath.display().to_string());
+
+    let editor_proc = editor_command.spawn();
+    match editor_proc.ok().expect("Couldn't launch editor").wait().is_ok() {
+        true => file_to_string(&tmppath).unwrap(),
+        false => panic!("The editor broke"),
     }
 }
 
@@ -577,4 +625,12 @@ fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
 struct Note {
     time_stamp: DateTime<UTC>,
     value: String,
+}
+
+fn file_to_string(filepath: &Path) -> IOResult<String> {
+    let mut s = String::new();
+    let mut f = try!(File::open(filepath));
+    try!(f.read_to_string(&mut s));
+
+    Ok(s)
 }
