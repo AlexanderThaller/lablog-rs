@@ -36,6 +36,7 @@ extern crate git2;
 extern crate hyper;
 extern crate iron;
 extern crate libc;
+extern crate logger;
 extern crate loggerv;
 extern crate regex;
 extern crate router;
@@ -43,8 +44,8 @@ extern crate rustc_serialize;
 extern crate tempdir;
 extern crate walkdir;
 extern crate xdg;
+extern crate url;
 
-use rustc_serialize::json;
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
@@ -54,9 +55,12 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use iron::prelude::*;
 use iron::status;
+use url::Url;
+use logger::Logger;
 use log::LogLevel;
 use regex::Regex;
 use router::Router;
+use rustc_serialize::json;
 use std::collections::BTreeMap as DataMap;
 use std::collections::BTreeSet as DataSet;
 use std::env;
@@ -239,12 +243,24 @@ fn run_webapp(args: Args) {
                move |r: &mut Request| webapp_notes(r, datadir_clone_clone.clone()),
                "notes_legacy");
 
+    let (logger_before, logger_after) = Logger::new(None);
+
+    let mut chain = Chain::new(router);
+
+    // Link logger_before as your first before middleware.
+    chain.link_before(logger_before);
+
+    // Link logger_after as your *last* after middleware.
+    chain.link_after(logger_after);
+
     info!("Listening on {}", listen_address);
-    Iron::new(router).http(listen_address).unwrap();
+    Iron::new(chain).http(listen_address).unwrap();
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let ref project = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
+    // TODO: Use something propper to decode the project from the url serialized format
+    let ref project = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_").replace("%20", " ");
+
     debug!("project: {}", project);
 
     let out = format_or_cached(project, &datadir);
@@ -360,7 +376,7 @@ fn format_projects_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note
     out
 }
 
-fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
+fn webapp_projects(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
     let projects = get_projects(&datadir);
 
     let out = html!{
@@ -375,7 +391,7 @@ fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<R
                     @ for project in projects {
                         tr {
                             td {
-                                a(href=format_args!("/notes/{}", project)) {
+                                a(href=Url::parse(format!("{}/notes/{}", req.url, project).as_str()).unwrap().as_str()) {
                                     : project
                                 }
                             }

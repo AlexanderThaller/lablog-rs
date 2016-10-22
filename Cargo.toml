@@ -24,3 +24,9 @@ libc = "*"
 [dependencies.clap]
 version = "*"
 features = ["yaml"]
+
+[dependencies.logger]
+git = "https://github.com/iron/logger.git"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
