@@ -36,6 +36,7 @@ extern crate git2;
 extern crate hyper;
 extern crate iron;
 extern crate loggerv;
+extern crate regex;
 extern crate router;
 extern crate rustc_serialize;
 extern crate walkdir;
@@ -51,6 +52,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use iron::prelude::*;
 use iron::status;
 use log::LogLevel;
+use regex::Regex;
 use router::Router;
 use std::collections::BTreeMap as Map;
 use std::collections::BTreeSet as DataSet;
@@ -58,8 +60,8 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write;
-use std::path::PathBuf;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
@@ -270,10 +272,14 @@ fn format_projects_notes<'a>(notes: Map<&'a str, Map<DateTime<UTC>, Note>>) -> S
 
     out.push_str(header);
 
+    let indentreg = Regex::new(r"(?m)^=").unwrap();
+    let indentrepl = "====";
+
     for (project, notes) in notes {
         out.push_str(format!("== {}\n", project).as_str());
         for (time_stamp, note) in notes {
-            out.push_str(format!("=== {}\n{}\n\n", time_stamp, note.value).as_str())
+            let indentnote = indentreg.replace_all(note.value.as_str(), indentrepl);
+            out.push_str(format!("=== {}\n{}\n\n", time_stamp, indentnote).as_str())
         }
     }
 
@@ -366,8 +372,8 @@ fn migrate_notes(args: Args) {
             trace!("note: {:#?}", note);
 
             match write_note(&datadir, project.as_str(), &note) {
-             Some(_) => git_commit_note(&datadir, project.as_str(), &note),
-             None => (),
+                Some(_) => git_commit_note(&datadir, project.as_str(), &note),
+                None => (),
             }
         }
 
@@ -403,8 +409,8 @@ fn migrate_notes(args: Args) {
             trace!("todo: {:#?}", todo);
 
             match write_note(&datadir, project.as_str(), &todo) {
-             Some(_) => git_commit_note(&datadir, project.as_str(), &todo),
-             None => (),
+                Some(_) => git_commit_note(&datadir, project.as_str(), &todo),
+                None => (),
             }
         }
     }
@@ -437,7 +443,7 @@ fn add_note(args: Args) {
 
     match write_note(&datadir, project, &note) {
         Some(_) => git_commit_note(&datadir, project, &note),
-        None => ()
+        None => (),
     }
 }
 
