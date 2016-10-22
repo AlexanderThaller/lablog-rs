@@ -106,15 +106,12 @@ subcommands:
             takes_value: true
             default_value: "0.0.0.0:18080"
             value_name: adress:port
-  - repo:
-      about: manage the repo for the notes
-      subcommands:
-        - init:
-            about: initialize a new repository and add all current files in it
-            args:
-              - remote:
-                  help: initialize the repo with the given remote
-                  long: remote
-                  short: R
-                  takes_value: true
-                  value_name: address
+  - dates:
+      about: list dates when notes where taken
+      args:
+        - project:
+            help: the project for which to list the notes for
+            takes_value: true
+            value_name: project
+            index: 1
+            default_value: "_"

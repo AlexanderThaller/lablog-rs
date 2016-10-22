@@ -56,7 +56,7 @@ use iron::status;
 use log::LogLevel;
 use regex::Regex;
 use router::Router;
-use std::collections::BTreeMap as Map;
+use std::collections::BTreeMap as DataMap;
 use std::collections::BTreeSet as DataSet;
 use std::env;
 use std::fs;
@@ -104,6 +104,7 @@ fn run(args: Args) {
                 "migrate" => migrate_notes(command.matches),
                 "web" => run_webapp(command.matches),
                 "repo" => run_git(command.matches),
+                "dates" => run_dates(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -111,6 +112,24 @@ fn run(args: Args) {
             }
         }
         None => list_projects(args),
+    }
+}
+
+fn run_dates(args: Args) {
+    let datadir = get_datadir(&args);
+    let project_arg = args.value_of("project").unwrap();
+    let projects = projects_or_project(project_arg, &datadir);
+    let project_notes = get_projects_notes(&datadir, &projects);
+
+    let mut dates = DataMap::default();
+    for (_, notes) in project_notes {
+        for (timestamp, _) in notes {
+            *dates.entry(timestamp.date()).or_insert(0) += 1;
+        }
+    }
+
+    for (date, count) in dates.iter() {
+        println!("{} {}", date, count)
     }
 }
 
@@ -271,7 +290,7 @@ fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
     }
 }
 
-fn format_projects_notes<'a>(notes: Map<&'a str, Map<DateTime<UTC>, Note>>) -> String {
+fn format_projects_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>) -> String {
     let mut out = String::new();
 
     let header = include_str!("notes.header.asciidoc");
@@ -521,8 +540,8 @@ fn list_notes(args: Args) {
 
 fn get_projects_notes<'a>(datadir: &PathBuf,
                           projects: &'a DataSet<String>)
-                          -> Map<&'a str, Map<DateTime<UTC>, Note>> {
-    let mut map = Map::default();
+                          -> DataMap<&'a str, DataMap<DateTime<UTC>, Note>> {
+    let mut map = DataMap::default();
 
     for project in projects.iter().map(|x| x.as_str()) {
         let mut project_path = datadir.clone();
@@ -578,8 +597,8 @@ fn get_projects(datadir: &PathBuf) -> DataSet<String> {
     projects
 }
 
-fn get_notes(project_path: PathBuf) -> Map<DateTime<UTC>, Note> {
-    let mut map = Map::default();
+fn get_notes(project_path: PathBuf) -> DataMap<DateTime<UTC>, Note> {
+    let mut map = DataMap::default();
     let mut rdr = csv::Reader::from_file(project_path).unwrap().has_headers(false);
 
     for record in rdr.decode() {
