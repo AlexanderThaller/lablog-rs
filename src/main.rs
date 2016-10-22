@@ -44,10 +44,11 @@ extern crate tempdir;
 extern crate walkdir;
 extern crate xdg;
 
+use rustc_serialize::json;
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
-use git2::{Repository, Error};
+use git2::{Repository, Error, ObjectType};
 use horrorshow::prelude::*;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -254,12 +255,60 @@ fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Re
 }
 
 fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
-    // TODO: Implement the cacheing
+    let xdg = BaseDirectories::new().unwrap();
+    let mut cache_path = PathBuf::from("lablog");
+    cache_path.push(normalize_project_path(project, "cache"));
+
+    let cachefile = xdg.find_cache_file(&cache_path);
+    trace!("cachefile: {:#?}", cachefile);
+
+    let out = match cachefile {
+        None => {
+            debug!("no cachefile will generate new file");
+            get_projects_asiidoc_write_cache(project, datadir)
+        }
+        Some(path) => {
+            let data = file_to_string(&path).unwrap();
+            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
+
+            let gitcommit = get_current_commit_for_repo(datadir);
+            match gitcommit == decoded.gitcommit {
+                true => {
+                    debug!("serve cachefile");
+                    decoded.html
+                }
+                false => {
+                    debug!("commits different will generate new file");
+                    get_projects_asiidoc_write_cache(project, datadir)
+                }
+            }
+        }
+    };
+
+    out
+}
+
+fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String {
+    let xdg = BaseDirectories::new().unwrap();
+    let mut cache_path = PathBuf::from("lablog");
+    cache_path.push(normalize_project_path(project, "cache"));
     let projects = projects_or_project(project, &datadir);
     let notes = get_projects_notes(&datadir, &projects);
     let notes_f = format_projects_notes(notes);
 
     let out = format_asciidoc(notes_f);
+    let cachefile = xdg.place_cache_file(&cache_path).unwrap();
+
+    trace!("cachefile put: {:#?}", cachefile);
+
+    let cache = HTMLCache {
+        gitcommit: get_current_commit_for_repo(datadir),
+        html: out.clone(),
+    };
+
+    let encoded = json::encode(&cache).unwrap();
+    let mut file = File::create(cachefile).unwrap();
+    file.write_all(encoded.as_bytes()).unwrap();
 
     out
 }
@@ -515,7 +564,7 @@ fn string_from_editor() -> String {
 }
 
 fn git_commit_note(datadir: &PathBuf, project: &str, note: &Note) {
-    let project_path = normalize_project_path(project);
+    let project_path = normalize_project_path(project, "csv");
 
     let repo = Repository::open(&datadir).unwrap();
     let mut index = repo.index().unwrap();
@@ -545,7 +594,7 @@ fn get_projects_notes<'a>(datadir: &PathBuf,
 
     for project in projects.iter().map(|x| x.as_str()) {
         let mut project_path = datadir.clone();
-        project_path.push(normalize_project_path(project));
+        project_path.push(normalize_project_path(project, "csv"));
 
         let notes = get_notes(project_path);
         map.insert(project.clone(), notes);
@@ -612,8 +661,8 @@ fn get_notes(project_path: PathBuf) -> DataMap<DateTime<UTC>, Note> {
     map
 }
 
-fn normalize_project_path(project: &str) -> String {
-    format!("{}.csv", project.replace(".", "/").as_str())
+fn normalize_project_path(project: &str, extention: &str) -> String {
+    format!("{}.{}", project.replace(".", "/").as_str(), extention)
 }
 
 fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
@@ -623,7 +672,7 @@ fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
     }
 
     let mut project_path = datadir.clone();
-    project_path.push(normalize_project_path(project));
+    project_path.push(normalize_project_path(project, "csv"));
 
     trace!("project_path: {:#?}", project_path);
     fs::create_dir_all(project_path.parent().unwrap()).unwrap();
@@ -652,4 +701,21 @@ fn file_to_string(filepath: &Path) -> IOResult<String> {
     try!(f.read_to_string(&mut s));
 
     Ok(s)
+}
+
+#[derive(Debug,RustcEncodable,RustcDecodable)]
+struct HTMLCache {
+    gitcommit: String,
+    html: String,
+}
+
+fn get_current_commit_for_repo(folder: &Path) -> String {
+    let repo = Repository::open(&folder).unwrap();
+    let head = repo.head().unwrap();
+    let head_name = head.resolve().unwrap();
+    let commit = head_name.peel(ObjectType::Commit).unwrap();
+    let id = commit.id();
+    trace!("id: {:#?}", id);
+
+    format!("{}", id)
 }
