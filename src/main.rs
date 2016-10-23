@@ -142,10 +142,10 @@ fn run_git(args: Args) {
     match args.subcommand.clone() {
         Some(command) => {
             match command.name.as_str() {
-                "init" => run_git_init(command.matches),
-                "pull" => run_git_pull(command.matches),
-                "push" => run_git_push(command.matches),
-                "sync" => run_git_sync(command.matches),
+                "init" => run_git_init(&command.matches),
+                "pull" => run_git_pull(&command.matches),
+                "push" => run_git_push(&command.matches),
+                "sync" => run_git_sync(&command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -156,19 +156,38 @@ fn run_git(args: Args) {
     }
 }
 
-fn run_git_pull(args: Args) {
-    unimplemented!()
+fn run_git_pull(args: &Args) {
+    let datadir = get_datadir(&args);
+    let output = Command::new("git")
+        .arg("pull")
+        .current_dir(datadir)
+        .output()
+        .expect("failed to run git pull");
+
+    println!("status: {}", output.status);
+    println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+    println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 }
 
-fn run_git_push(args: Args) {
-    unimplemented!()
+fn run_git_push(args: &Args) {
+    let datadir = get_datadir(&args);
+    let output = Command::new("git")
+        .arg("push")
+        .current_dir(datadir)
+        .output()
+        .expect("failed to run git push");
+
+    println!("status: {}", output.status);
+    println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+    println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 }
 
-fn run_git_sync(args: Args) {
-    unimplemented!()
+fn run_git_sync(args: &Args) {
+    run_git_pull(&args);
+    run_git_push(&args);
 }
 
-fn run_git_init(args: Args) {
+fn run_git_init(args: &Args) {
     let datadir = get_datadir(&args);
     match args.value_of("remote") {
         Some(remote) => {

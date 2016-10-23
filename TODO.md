@@ -1,9 +1,3 @@
-. Implemented git handling
-.. init
-... remote
-.. pull
-.. push
-.. sync
 . Edit entries
 . Filter
 .. Date (begin, end)
@@ -23,3 +17,5 @@
 . https://github.com/pingcap/rust-prometheus for web 
 . add raw flag to notes webpage
 . merge command to merge one project into another
+. timeline
+. colorisation
