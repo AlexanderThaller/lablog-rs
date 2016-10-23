@@ -115,3 +115,21 @@ subcommands:
             value_name: project
             index: 1
             default_value: "_"
+  - repo:
+      about: interact with the notes repository
+      subcommands:
+        - pull:
+            about: pull changes from remote repo
+        - push:
+            about: push changes to remote repo
+        - sync:
+            about: synchronize local repository with remote
+        - init:
+            about: initialize a new repository
+            args:
+              - remote:
+                  help: clone from the remote instead of creating an empty repo
+                  long: remote
+                  short: R
+                  takes_value: true
+                  value_name: address

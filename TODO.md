@@ -1,7 +1,6 @@
 . Implemented git handling
 .. init
 ... remote
-.. remote
 .. pull
 .. push
 .. sync

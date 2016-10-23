@@ -143,6 +143,9 @@ fn run_git(args: Args) {
         Some(command) => {
             match command.name.as_str() {
                 "init" => run_git_init(command.matches),
+                "pull" => run_git_pull(command.matches),
+                "push" => run_git_push(command.matches),
+                "sync" => run_git_sync(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -151,6 +154,18 @@ fn run_git(args: Args) {
         }
         None => (),
     }
+}
+
+fn run_git_pull(args: Args) {
+    unimplemented!()
+}
+
+fn run_git_push(args: Args) {
+    unimplemented!()
+}
+
+fn run_git_sync(args: Args) {
+    unimplemented!()
 }
 
 fn run_git_init(args: Args) {
