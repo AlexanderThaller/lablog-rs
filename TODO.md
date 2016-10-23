@@ -5,7 +5,6 @@
 .. pull
 .. push
 .. sync
-. Add caching for webapplication based on commit string
 . Edit entries
 . Filter
 .. Date (begin, end)
@@ -19,3 +18,4 @@
 . Ncurse interface
 . Autopush / Autpull / Autosync
 . Subproject handling
+. Switch caching of asciidoc output base on changetime of file
