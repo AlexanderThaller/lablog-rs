@@ -127,37 +127,34 @@ fn run_dates(args: Args) {
     let project_notes = get_projects_notes(&datadir, &projects);
 
     let mut dates = DataMap::default();
-    for (_, notes) in project_notes {
-        for (timestamp, _) in notes {
+    for notes in project_notes.values() {
+        for timestamp in notes.keys() {
             *dates.entry(timestamp.date()).or_insert(0) += 1;
         }
     }
 
-    for (date, count) in dates.iter() {
+    for (date, count) in dates {
         println!("{} {}", date, count)
     }
 }
 
 fn run_git(args: Args) {
-    match args.subcommand.clone() {
-        Some(command) => {
-            match command.name.as_str() {
-                "init" => run_git_init(&command.matches),
-                "pull" => run_git_pull(&command.matches),
-                "push" => run_git_push(&command.matches),
-                "sync" => run_git_sync(&command.matches),
-                _ => {
-                    error!("do not know what to do with this command: {}",
-                           command.name.as_str())
-                }
+    if let Some(command) = args.subcommand.clone() {
+        match command.name.as_str() {
+            "init" => run_git_init(&command.matches),
+            "pull" => run_git_pull(&command.matches),
+            "push" => run_git_push(&command.matches),
+            "sync" => run_git_sync(&command.matches),
+            _ => {
+                error!("do not know what to do with this command: {}",
+                       command.name.as_str())
             }
         }
-        None => (),
     }
 }
 
 fn run_git_pull(args: &Args) {
-    let datadir = get_datadir(&args);
+    let datadir = get_datadir(args);
     let output = Command::new("git")
         .arg("pull")
         .current_dir(datadir)
@@ -170,7 +167,7 @@ fn run_git_pull(args: &Args) {
 }
 
 fn run_git_push(args: &Args) {
-    let datadir = get_datadir(&args);
+    let datadir = get_datadir(args);
     let output = Command::new("git")
         .arg("push")
         .current_dir(datadir)
@@ -183,12 +180,12 @@ fn run_git_push(args: &Args) {
 }
 
 fn run_git_sync(args: &Args) {
-    run_git_pull(&args);
-    run_git_push(&args);
+    run_git_pull(args);
+    run_git_push(args);
 }
 
 fn run_git_init(args: &Args) {
-    let datadir = get_datadir(&args);
+    let datadir = get_datadir(args);
     match args.value_of("remote") {
         Some(remote) => {
             Repository::clone(remote, datadir).unwrap();
@@ -228,7 +225,7 @@ fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
     repo.commit(Some("HEAD"),
                 &signature,
                 &signature,
-                &msg,
+                msg,
                 &tree,
                 &[&head_commit])
 }
@@ -292,7 +289,7 @@ fn run_webapp(args: Args) {
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let ref project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
+    let project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
     let project =
         percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
 
@@ -313,7 +310,7 @@ fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
     let cachefile = xdg.find_cache_file(&cache_path);
     trace!("cachefile: {:#?}", cachefile);
 
-    let out = match cachefile {
+    match cachefile {
         None => {
             debug!("no cachefile will generate new file");
             get_projects_asiidoc_write_cache(project, datadir)
@@ -323,28 +320,23 @@ fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
             let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
 
             let gitcommit = get_current_commit_for_repo(datadir);
-            match gitcommit == decoded.gitcommit {
-                true => {
-                    debug!("serve cachefile");
-                    decoded.html
-                }
-                false => {
-                    debug!("commits different will generate new file");
-                    get_projects_asiidoc_write_cache(project, datadir)
-                }
+            if gitcommit == decoded.gitcommit {
+                debug!("serve cachefile");
+                decoded.html
+            } else {
+                debug!("commits different will generate new file");
+                get_projects_asiidoc_write_cache(project, datadir)
             }
         }
-    };
-
-    out
+    }
 }
 
 fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String {
     let xdg = BaseDirectories::new().unwrap();
     let mut cache_path = PathBuf::from("lablog");
     cache_path.push(normalize_project_path(project, "cache"));
-    let projects = projects_or_project(project, &datadir);
-    let notes = get_projects_notes(&datadir, &projects);
+    let projects = projects_or_project(project, datadir);
+    let notes = get_projects_notes(datadir, &projects);
     let notes_f = format_projects_notes(notes);
 
     let out = format_asciidoc(notes_f);
@@ -398,7 +390,7 @@ fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
     }
 }
 
-fn format_projects_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>) -> String {
+fn format_projects_notes(notes: DataMap<&str, DataMap<DateTime<UTC>, Note>>) -> String {
     let mut out = String::new();
 
     let header = include_str!("notes.header.asciidoc");
@@ -466,12 +458,11 @@ fn migrate_notes(args: Args) {
             None => false,
         })
         .filter(|e| {
-            !e.path().strip_prefix(&sourcedir).unwrap().to_str().unwrap().starts_with(".")
+            !e.path().strip_prefix(&sourcedir).unwrap().to_str().unwrap().starts_with('.')
         }) {
         trace!("file: {:#?}", file.path());
 
         let project = file.path()
-            .clone()
             .strip_prefix(&sourcedir)
             .unwrap()
             .with_extension("")
@@ -504,9 +495,8 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("note: {:#?}", note);
 
-            match write_note(&datadir, project.as_str(), &note) {
-                Some(_) => git_commit_note(&datadir, project.as_str(), &note),
-                None => (),
+            if let Some(_) = write_note(&datadir, project.as_str(), &note) {
+                git_commit_note(&datadir, project.as_str(), &note)
             }
         }
 
@@ -541,9 +531,8 @@ fn migrate_notes(args: Args) {
             trace!("project: {:#?}", project);
             trace!("todo: {:#?}", todo);
 
-            match write_note(&datadir, project.as_str(), &todo) {
-                Some(_) => git_commit_note(&datadir, project.as_str(), &todo),
-                None => (),
+            if let Some(_) = write_note(&datadir, project.as_str(), &todo) {
+                git_commit_note(&datadir, project.as_str(), &todo)
             }
         }
     }
@@ -566,20 +555,19 @@ fn add_note(args: Args) {
     let datadir = get_datadir(&args);
     let project = args.value_of("project").unwrap();
 
-    let text = match args.is_present("editor") {
-        true => string_from_editor(),
-        false => {
-            match args.value_of("file") {
-                Some(file_path) => {
-                    let file_text = file_to_string(Path::new(file_path)).unwrap();
-                    trace!("text from file: {}", file_text);
-                    file_text
-                }
-                None => {
-                    match args.value_of("text") {
-                        Some(text) => String::from(text),
-                        None => String::from(""),
-                    }
+    let text = if args.is_present("editor") {
+        string_from_editor()
+    } else {
+        match args.value_of("file") {
+            Some(file_path) => {
+                let file_text = file_to_string(Path::new(file_path)).unwrap();
+                trace!("text from file: {}", file_text);
+                file_text
+            }
+            None => {
+                match args.value_of("text") {
+                    Some(text) => String::from(text),
+                    None => String::from(""),
                 }
             }
         }
@@ -593,9 +581,8 @@ fn add_note(args: Args) {
         value: text.into(),
     };
 
-    match write_note(&datadir, project, &note) {
-        Some(_) => git_commit_note(&datadir, project, &note),
-        None => (),
+    if let Some(_) = write_note(&datadir, project, &note) {
+        git_commit_note(&datadir, project, &note)
     }
 }
 
@@ -616,9 +603,10 @@ fn string_from_editor() -> String {
     editor_command.arg(tmppath.display().to_string());
 
     let editor_proc = editor_command.spawn();
-    match editor_proc.ok().expect("Couldn't launch editor").wait().is_ok() {
-        true => file_to_string(&tmppath).unwrap(),
-        false => panic!("The editor broke"),
+    if editor_proc.expect("Couldn't launch editor").wait().is_ok() {
+        file_to_string(&tmppath).unwrap()
+    } else {
+        panic!("The editor broke")
     }
 }
 
@@ -656,7 +644,7 @@ fn get_projects_notes<'a>(datadir: &PathBuf,
         project_path.push(normalize_project_path(project, "csv"));
 
         let notes = get_notes(project_path);
-        map.insert(project.clone(), notes);
+        map.insert(project, notes);
     }
 
     map
@@ -690,7 +678,7 @@ fn get_projects(datadir: &PathBuf) -> DataSet<String> {
         })
         .map(|e| e.path().strip_prefix(&datadir))
         .filter_map(|e| e.ok())
-        .filter(|e| !e.to_str().unwrap().starts_with("."))
+        .filter(|e| !e.to_str().unwrap().starts_with('.'))
         .map(|e| e.with_extension(""))
         .collect();
 
