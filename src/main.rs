@@ -72,7 +72,7 @@ use std::io::Result as IOResult;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use tempdir::TempDir;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
@@ -259,7 +259,8 @@ fn run_webapp(args: Args) {
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
     let ref project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
-    let project = percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
+    let project =
+        percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
 
     debug!("project: {}", project);
 
@@ -330,18 +331,26 @@ fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String 
 }
 
 fn format_asciidoc(input: String) -> String {
-    let process = Command::new("asciidoctor")
+    let tmpdir = TempDir::new("lablog_tmp").unwrap();
+    let tmppath = tmpdir.path().join("output.asciidoc");
+    let mut file = File::create(&tmppath).unwrap();
+    file.write_all(input.as_bytes()).unwrap();
+
+    trace!("tmp file for asciidoc: {}",
+           file_to_string(&tmppath).unwrap());
+
+    let output = Command::new("asciidoctor")
+        .arg("--out-file")
         .arg("-")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("failed to execute process");
+        .arg(tmppath)
+        .output()
+        .unwrap();
 
-    process.stdin.unwrap().write_all(input.as_bytes()).unwrap();
+    debug!("status: {}", output.status);
+    debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+    debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
 
-    let mut out = String::new();
-    process.stdout.unwrap().read_to_string(&mut out).unwrap();
-    out
+    String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
 fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
