@@ -55,7 +55,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use iron::prelude::*;
 use iron::status;
-use url::Url;
+use url::percent_encoding;
 use logger::Logger;
 use log::LogLevel;
 use regex::Regex;
@@ -258,12 +258,12 @@ fn run_webapp(args: Args) {
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    // TODO: Use something propper to decode the project from the url serialized format
-    let ref project = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_").replace("%20", " ");
+    let ref project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
+    let project = percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
 
     debug!("project: {}", project);
 
-    let out = format_or_cached(project, &datadir);
+    let out = format_or_cached(project.as_str(), &datadir);
 
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
@@ -376,7 +376,7 @@ fn format_projects_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note
     out
 }
 
-fn webapp_projects(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
+fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
     let projects = get_projects(&datadir);
 
     let out = html!{
@@ -391,7 +391,7 @@ fn webapp_projects(req: &mut Request, datadir: std::path::PathBuf) -> IronResult
                     @ for project in projects {
                         tr {
                             td {
-                                a(href=Url::parse(format!("{}/notes/{}", req.url, project).as_str()).unwrap().as_str()) {
+                                a(href=format_args!("/notes/{}", project)) {
                                     : project
                                 }
                             }
