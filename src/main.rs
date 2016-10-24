@@ -306,16 +306,20 @@ fn run_webapp(args: Args) {
     let datadir = get_datadir(&args);
     let datadir_clone = datadir.clone();
     let datadir_clone_clone = datadir.clone();
+    let datadir_clone_clone_clone = datadir.clone();
 
     let mut router = Router::new();
     router.get("/",
                move |r: &mut Request| webapp_projects(r, datadir.clone()),
                "projects");
+    router.get("/timeline",
+               move |r: &mut Request| webapp_timeline(r, datadir_clone.clone()),
+               "timeline");
     router.get("/notes/:project",
-               move |r: &mut Request| webapp_notes(r, datadir_clone.clone()),
+               move |r: &mut Request| webapp_notes(r, datadir_clone_clone.clone()),
                "notes");
     router.get("/show/entries/:project",
-               move |r: &mut Request| webapp_notes(r, datadir_clone_clone.clone()),
+               move |r: &mut Request| webapp_notes(r, datadir_clone_clone_clone.clone()),
                "notes_legacy");
 
     let (logger_before, logger_after) = Logger::new(None);
@@ -330,6 +334,17 @@ fn run_webapp(args: Args) {
 
     info!("Listening on {}", listen_address);
     Iron::new(chain).http(listen_address).unwrap();
+}
+
+fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
+    let project = "_";
+    let formatted = get_timeline(&datadir, project);
+
+    let out = format_asciidoc(formatted);
+
+    let mut resp = Response::with((status::Ok, out));
+    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
+    Ok(resp)
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
