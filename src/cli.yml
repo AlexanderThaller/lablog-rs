@@ -115,6 +115,15 @@ subcommands:
             value_name: project
             index: 1
             default_value: "_"
+  - timeline:
+      about: list notes sorted by time
+      args:
+        - project:
+            help: the project for which to list the notes for
+            takes_value: true
+            value_name: project
+            index: 1
+            default_value: "_"
   - repo:
       about: interact with the notes repository
       subcommands:

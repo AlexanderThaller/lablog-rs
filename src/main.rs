@@ -110,6 +110,7 @@ fn run(args: Args) {
                 "web" => run_webapp(command.matches),
                 "repo" => run_git(command.matches),
                 "dates" => run_dates(command.matches),
+                "timeline" => run_timeline(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -118,6 +119,49 @@ fn run(args: Args) {
         }
         None => list_projects(args),
     }
+}
+
+fn run_timeline(args: Args) {
+    let datadir = get_datadir(&args);
+    let project = args.value_of("project").unwrap();
+
+    println!("{}", get_timeline(&datadir, project));
+}
+
+fn get_timeline(datadir: &PathBuf, project: &str) -> String {
+    let projects = projects_or_project(project, datadir);
+    let project_notes = get_projects_notes(datadir, &projects);
+
+    #[derive(Debug,RustcEncodable,RustcDecodable)]
+    struct NoteProject {
+        note: Note,
+        project: String,
+    }
+
+    let mut timeline = DataMap::default();
+    for (project, notes) in project_notes {
+        for (timestamp, note) in notes {
+            timeline.insert(timestamp,
+                            NoteProject {
+                                note: note,
+                                project: String::from(project),
+                            });
+        }
+    }
+
+    let mut out = String::new();
+    let header = include_str!("notes.header.asciidoc");
+    out.push_str(header);
+
+    let indentreg = Regex::new(r"(?m)^=").unwrap();
+    let indentrepl = "=====";
+    for (timestamp, note) in timeline {
+        out.push_str(format!("== {}\n", timestamp).as_str());
+        let indentnote = indentreg.replace_all(note.note.value.as_str(), indentrepl);
+        out.push_str(format!("=== {}\n{}\n", note.project, indentnote).as_str());
+    }
+
+    out
 }
 
 fn run_dates(args: Args) {
@@ -394,7 +438,6 @@ fn format_projects_notes(notes: DataMap<&str, DataMap<DateTime<UTC>, Note>>) -> 
     let mut out = String::new();
 
     let header = include_str!("notes.header.asciidoc");
-
     out.push_str(header);
 
     let indentreg = Regex::new(r"(?m)^=").unwrap();
