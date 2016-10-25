@@ -7,6 +7,7 @@ dependencies = [
  "csv 0.14.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "git2 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "githelper 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "horrorshow 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "iron 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -167,6 +168,14 @@ dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "libgit2-sys 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "githelper"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "git2 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -737,6 +746,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gcc 0.3.37 (registry+https://github.com/rust-lang/crates.io-index)" = "41337e9dc80ebadf36b4f252bf7440f61bcf34f99caa170e50dcd0f9a0cdb5d8"
 "checksum gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0912515a8ff24ba900422ecda800b52f4016a56251922d397c576bf92c690518"
 "checksum git2 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f6419fd6f609a1a2fbbee5dffdb2c26e8e5cd0c06d558d17d3381187e03bbe18"
+"checksum githelper 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4d4096a464e5ba7599308e8443455b9f5423edf9113c442024d612e32fa824dc"
 "checksum horrorshow 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)" = "234628f89d562b0ad97069e3f808cf109d0ed51b71a7825bfa6d32f317569543"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
 "checksum httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "46534074dbb80b070d60a5cb8ecadd8963a00a438ae1a95268850a7ef73b67ae"

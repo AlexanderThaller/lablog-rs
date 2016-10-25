@@ -33,6 +33,7 @@ extern crate chrono;
 extern crate csv;
 extern crate env_logger;
 extern crate git2;
+extern crate githelper;
 extern crate hyper;
 extern crate iron;
 extern crate libc;
@@ -42,14 +43,14 @@ extern crate regex;
 extern crate router;
 extern crate rustc_serialize;
 extern crate tempdir;
+extern crate url;
 extern crate walkdir;
 extern crate xdg;
-extern crate url;
 
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
-use git2::{Repository, Error, ObjectType};
+use git2::{Repository, Error};
 use horrorshow::prelude::*;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -233,7 +234,6 @@ fn run_git_init(args: &Args) {
     match args.value_of("remote") {
         Some(remote) => {
             Repository::clone(remote, datadir).unwrap();
-            ()
         }
         None => {
 
@@ -378,7 +378,7 @@ fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
             let data = file_to_string(&path).unwrap();
             let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
 
-            let gitcommit = get_current_commit_for_repo(datadir);
+            let gitcommit = githelper::get_current_commitid_for_repo(datadir).unwrap();
             if gitcommit == decoded.gitcommit {
                 debug!("serve cachefile");
                 decoded.html
@@ -404,7 +404,7 @@ fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String 
     trace!("cachefile put: {:#?}", cachefile);
 
     let cache = HTMLCache {
-        gitcommit: get_current_commit_for_repo(datadir),
+        gitcommit:githelper::get_current_commitid_for_repo(datadir).unwrap(),
         html: out.clone(),
     };
 
@@ -812,15 +812,4 @@ fn file_to_string(filepath: &Path) -> IOResult<String> {
 struct HTMLCache {
     gitcommit: String,
     html: String,
-}
-
-fn get_current_commit_for_repo(folder: &Path) -> String {
-    let repo = Repository::open(&folder).unwrap();
-    let head = repo.head().unwrap();
-    let head_name = head.resolve().unwrap();
-    let commit = head_name.peel(ObjectType::Commit).unwrap();
-    let id = commit.id();
-    trace!("id: {:#?}", id);
-
-    format!("{}", id)
 }
