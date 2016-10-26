@@ -19,3 +19,6 @@
 * merge command to merge one project into another
 * timeline
 * colorisation
+* tabcompletion
+** commands and subcommands
+** projects
