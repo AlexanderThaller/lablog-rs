@@ -1,0 +1,471 @@
+#compdef lablog
+
+_lablog() {
+	typeset -A opt_args
+	local ret=1
+
+	local context curcontext="$curcontext" state line
+    _arguments -s -S -C \
+"-l+[the loglevel to run under]: :(trace debug info warn error)" \
+"--loglevel+[the loglevel to run under]: :(trace debug info warn error)" \
+"-D+[the path to the lablog data dir]" \
+"--datadir+[the path to the lablog data dir]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_commands" \
+"*:: :->lablog" \
+&& ret=0
+    case $state in
+    (lablog)
+        curcontext="${curcontext%:*:*}:lablog-command-$words[1]:"
+        case $line[1] in
+            (note)
+_arguments -s -S -C \
+"(-e --editor)-f+[the file from which to read the note from]" \
+"(-e --editor)--file+[the file from which to read the note from]" \
+"-e[open the default editor for writing the note]" \
+"--editor[open the default editor for writing the note]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_note_commands" \
+&& ret=0
+;;
+(notes)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_notes_commands" \
+&& ret=0
+;;
+(projects)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(migrate)
+_arguments -s -S -C \
+"-S+[the folder from which to read the old files]" \
+"--sourcedir+[the folder from which to read the old files]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(web)
+_arguments -s -S -C \
+"-P+[the address and port to listen on]" \
+"--port+[the address and port to listen on]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(dates)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_dates_commands" \
+&& ret=0
+;;
+(timeline)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_timeline_commands" \
+&& ret=0
+;;
+(repo)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_repo_commands" \
+"*:: :->repo" \
+&& ret=0
+case $state in
+    (repo)
+        curcontext="${curcontext%:*:*}:lablog-repo-command-$words[1]:"
+        case $line[1] in
+            (pull)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(push)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(sync)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(init)
+_arguments -s -S -C \
+"-R+[clone from the remote instead of creating an empty repo]" \
+"--remote+[clone from the remote instead of creating an empty repo]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+(help)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_lablog_commands] )) ||
+_lablog_commands() {
+    local commands; commands=(
+        "note:add a note to lablog" \
+"notes:list all saved notes" \
+"projects:list all projects available" \
+"migrate:migrate from the old csv format to the new one" \
+"web:start a webserver and serve notes over http" \
+"dates:list dates when notes where taken" \
+"timeline:list notes sorted by time" \
+"repo:interact with the notes repository" \
+"help:Prints this message or the help of the given subcommand(s)" \
+"help:Prints this message or the help of the given subcommand(s)" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'lablog commands' commands "$@"
+}
+(( $+functions[_lablog_dates_commands] )) ||
+_lablog_dates_commands() {
+    local commands; commands=(
+        "PROJECT:the project for which to list the notes for" \
+    )
+    _describe -t commands 'lablog dates commands' commands "$@"
+}
+(( $+functions[_lablog_help_commands] )) ||
+_lablog_help_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog help commands' commands "$@"
+}
+(( $+functions[_lablog_repo_help_commands] )) ||
+_lablog_repo_help_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog repo help commands' commands "$@"
+}
+(( $+functions[_lablog_repo_init_commands] )) ||
+_lablog_repo_init_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog repo init commands' commands "$@"
+}
+(( $+functions[_lablog_migrate_commands] )) ||
+_lablog_migrate_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog migrate commands' commands "$@"
+}
+(( $+functions[_lablog_note_commands] )) ||
+_lablog_note_commands() {
+    local commands; commands=(
+        "PROJECT:the project to which to add the note to" \
+"TEXT:the text for the note" \
+    )
+    _describe -t commands 'lablog note commands' commands "$@"
+}
+(( $+functions[_lablog_notes_commands] )) ||
+_lablog_notes_commands() {
+    local commands; commands=(
+        "PROJECT:the project for which to list the notes for" \
+    )
+    _describe -t commands 'lablog notes commands' commands "$@"
+}
+(( $+functions[_lablog_projects_commands] )) ||
+_lablog_projects_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog projects commands' commands "$@"
+}
+(( $+functions[_lablog_repo_pull_commands] )) ||
+_lablog_repo_pull_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog repo pull commands' commands "$@"
+}
+(( $+functions[_lablog_repo_push_commands] )) ||
+_lablog_repo_push_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog repo push commands' commands "$@"
+}
+(( $+functions[_lablog_repo_commands] )) ||
+_lablog_repo_commands() {
+    local commands; commands=(
+        "pull:pull changes from remote repo" \
+"push:push changes to remote repo" \
+"sync:synchronize local repository with remote" \
+"init:initialize a new repository" \
+"help:Prints this message or the help of the given subcommand(s)" \
+"help:Prints this message or the help of the given subcommand(s)" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'lablog repo commands' commands "$@"
+}
+(( $+functions[_lablog_repo_sync_commands] )) ||
+_lablog_repo_sync_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog repo sync commands' commands "$@"
+}
+(( $+functions[_lablog_timeline_commands] )) ||
+_lablog_timeline_commands() {
+    local commands; commands=(
+        "PROJECT:the project for which to list the notes for" \
+    )
+    _describe -t commands 'lablog timeline commands' commands "$@"
+}
+(( $+functions[_lablog_web_commands] )) ||
+_lablog_web_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'lablog web commands' commands "$@"
+}
+
+_lablog "$@"

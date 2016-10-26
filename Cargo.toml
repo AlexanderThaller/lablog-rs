@@ -2,6 +2,7 @@
 name = "lablog"
 version = "0.1.0"
 authors = ["Alexander Thaller <alexander@thaller.ws>"]
+build = "build.rs"
 
 [dependencies]
 chrono = { version = "0.2", features = ["rustc-serialize"] }
@@ -23,6 +24,10 @@ libc = "*"
 githelper = "*"
 
 [dependencies.clap]
+version = "*"
+features = ["yaml"]
+
+[build-dependencies.clap]
 version = "*"
 features = ["yaml"]
 

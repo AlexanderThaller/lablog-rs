@@ -20,5 +20,4 @@
 * timeline
 * colorisation
 * tabcompletion
-** commands and subcommands
 ** projects
