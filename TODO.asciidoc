@@ -21,3 +21,4 @@
 * colorisation
 * tabcompletion
 ** projects
+* Delete projects
