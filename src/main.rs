@@ -56,7 +56,6 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use iron::prelude::*;
 use iron::status;
-use url::percent_encoding;
 use logger::Logger;
 use log::LogLevel;
 use regex::Regex;
@@ -71,10 +70,12 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Result as IOResult;
 use std::io::Write;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use tempdir::TempDir;
+use url::percent_encoding;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
@@ -354,14 +355,58 @@ fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Re
 
     debug!("project: {}", project);
 
-    let out = format_or_cached(project.as_str(), &datadir);
+    let out = format_or_cached_modified(project.as_str(), &datadir);
 
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
     Ok(resp)
 }
 
-fn format_or_cached(project: &str, datadir: &PathBuf) -> String {
+fn format_or_cached_modified(project: &str, datadir: &PathBuf) -> String {
+    let xdg = BaseDirectories::new().unwrap();
+    let mut cache_path = PathBuf::from("lablog");
+    cache_path.push(normalize_project_path(project, "cache"));
+
+    let cachefile = xdg.find_cache_file(&cache_path);
+    trace!("cachefile: {:#?}", cachefile);
+
+    match cachefile {
+        None => {
+            debug!("no cachefile will generate new file");
+            get_projects_asiidoc_write_cache(project, datadir)
+        }
+        Some(path) => {
+            let data = file_to_string(&path).unwrap();
+            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
+
+            let mut project_path = datadir.clone();
+            project_path.push(normalize_project_path(project, "csv"));
+            trace!("project_path: {:#?}", project_path);
+
+            let metadata = File::open(&project_path).unwrap().metadata().unwrap();
+            let mtime = metadata.mtime();
+            let mtime_nsec = metadata.mtime_nsec() as u32;
+
+            trace!("mtime: {}", mtime);
+            trace!("mtime_nsec: {}", mtime_nsec);
+
+            let file_modified = NaiveDateTime::from_timestamp(mtime, mtime_nsec);
+
+            trace!("file modified: {:#?}", file_modified);
+            trace!("cache modified: {:#?}", decoded.modified);
+
+            if file_modified <= decoded.modified {
+                debug!("serve cachefile");
+                decoded.html
+            } else {
+                debug!("file_modified is newer than decoded.modified");
+                get_projects_asiidoc_write_cache(project, datadir)
+            }
+        }
+    }
+}
+
+fn format_or_cached_git(project: &str, datadir: &PathBuf) -> String {
     let xdg = BaseDirectories::new().unwrap();
     let mut cache_path = PathBuf::from("lablog");
     cache_path.push(normalize_project_path(project, "cache"));
@@ -401,11 +446,21 @@ fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String 
     let out = format_asciidoc(notes_f);
     let cachefile = xdg.place_cache_file(&cache_path).unwrap();
 
+    let mut project_path = datadir.clone();
+    project_path.push(normalize_project_path(project, "csv"));
+    let mtime = File::open(&project_path).unwrap().metadata().unwrap().mtime();
+    let mtime_nsec = File::open(&project_path).unwrap().metadata().unwrap().mtime_nsec() as u32;
+    trace!("mtime: {}", mtime);
+    trace!("mtime_nsec: {}", mtime_nsec);
+
+    let modified = NaiveDateTime::from_timestamp(mtime, mtime_nsec);
+
     trace!("cachefile put: {:#?}", cachefile);
 
     let cache = HTMLCache {
-        gitcommit:githelper::get_current_commitid_for_repo(datadir).unwrap(),
+        gitcommit: githelper::get_current_commitid_for_repo(datadir).unwrap(),
         html: out.clone(),
+        modified: modified,
     };
 
     let encoded = json::encode(&cache).unwrap();
@@ -812,4 +867,5 @@ fn file_to_string(filepath: &Path) -> IOResult<String> {
 struct HTMLCache {
     gitcommit: String,
     html: String,
+    modified: NaiveDateTime,
 }
