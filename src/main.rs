@@ -127,10 +127,10 @@ fn run_timeline(args: Args) {
     let datadir = get_datadir(&args);
     let project = args.value_of("project").unwrap();
 
-    println!("{}", get_timeline(&datadir, project));
+    println!("{}", get_timeline(project, &datadir));
 }
 
-fn get_timeline(datadir: &PathBuf, project: &str) -> String {
+fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     let projects = projects_or_project(project, datadir);
     let project_notes = get_projects_notes(datadir, &projects);
 
@@ -339,9 +339,8 @@ fn run_webapp(args: Args) {
 
 fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
     let project = "_";
-    let formatted = get_timeline(&datadir, project);
 
-    let out = format_asciidoc(formatted);
+    let out = format_or_cached_git(get_timeline, project, &datadir, "_timeline");
 
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
@@ -355,25 +354,44 @@ fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Re
 
     debug!("project: {}", project);
 
-    let out = format_or_cached_modified(project.as_str(), &datadir);
+    let out = format_or_cached_modified(format_notes, project.as_str(), &datadir, project.as_str());
 
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
     Ok(resp)
 }
 
-fn format_or_cached_modified(project: &str, datadir: &PathBuf) -> String {
+fn find_cache_file(project: &str) -> Option<PathBuf> {
     let xdg = BaseDirectories::new().unwrap();
     let mut cache_path = PathBuf::from("lablog");
     cache_path.push(normalize_project_path(project, "cache"));
 
     let cachefile = xdg.find_cache_file(&cache_path);
-    trace!("cachefile: {:#?}", cachefile);
+    debug!("found cachefile: {:#?} from project {}", cachefile, project);
 
-    match cachefile {
+    cachefile
+}
+
+fn place_cache_file(project: &str) -> PathBuf {
+    let xdg = BaseDirectories::new().unwrap();
+    let mut cache_path = PathBuf::from("lablog");
+    cache_path.push(normalize_project_path(project, "cache"));
+    let cachefile = xdg.place_cache_file(&cache_path).unwrap();
+
+    debug!("put cachefile: {:#?} from project {}", cachefile, project);
+
+    cachefile
+}
+
+fn format_or_cached_modified(format: fn(&str, &PathBuf) -> String,
+                             project: &str,
+                             datadir: &PathBuf,
+                             cachefile: &str)
+                             -> String {
+    match find_cache_file(cachefile) {
         None => {
             debug!("no cachefile will generate new file");
-            get_projects_asiidoc_write_cache(project, datadir)
+            get_projects_asiidoc_write_cache(format, project, datadir, &place_cache_file(cachefile))
         }
         Some(path) => {
             let data = file_to_string(&path).unwrap();
@@ -400,24 +418,21 @@ fn format_or_cached_modified(project: &str, datadir: &PathBuf) -> String {
                 decoded.html
             } else {
                 debug!("file_modified is newer than decoded.modified");
-                get_projects_asiidoc_write_cache(project, datadir)
+                get_projects_asiidoc_write_cache(format, project, datadir, &path)
             }
         }
     }
 }
 
-fn format_or_cached_git(project: &str, datadir: &PathBuf) -> String {
-    let xdg = BaseDirectories::new().unwrap();
-    let mut cache_path = PathBuf::from("lablog");
-    cache_path.push(normalize_project_path(project, "cache"));
-
-    let cachefile = xdg.find_cache_file(&cache_path);
-    trace!("cachefile: {:#?}", cachefile);
-
-    match cachefile {
+fn format_or_cached_git(format: fn(&str, &PathBuf) -> String,
+                        project: &str,
+                        datadir: &PathBuf,
+                        cachefile: &str)
+                        -> String {
+    match find_cache_file(cachefile) {
         None => {
             debug!("no cachefile will generate new file");
-            get_projects_asiidoc_write_cache(project, datadir)
+            get_projects_asiidoc_write_cache(format, project, datadir, &place_cache_file(cachefile))
         }
         Some(path) => {
             let data = file_to_string(&path).unwrap();
@@ -429,33 +444,47 @@ fn format_or_cached_git(project: &str, datadir: &PathBuf) -> String {
                 decoded.html
             } else {
                 debug!("commits different will generate new file");
-                get_projects_asiidoc_write_cache(project, datadir)
+                get_projects_asiidoc_write_cache(format, project, datadir, &path)
             }
         }
     }
 }
 
-fn get_projects_asiidoc_write_cache(project: &str, datadir: &PathBuf) -> String {
-    let xdg = BaseDirectories::new().unwrap();
-    let mut cache_path = PathBuf::from("lablog");
-    cache_path.push(normalize_project_path(project, "cache"));
+fn format_notes(project: &str, datadir: &PathBuf) -> String {
     let projects = projects_or_project(project, datadir);
     let notes = get_projects_notes(datadir, &projects);
     let notes_f = format_projects_notes(notes);
 
-    let out = format_asciidoc(notes_f);
-    let cachefile = xdg.place_cache_file(&cache_path).unwrap();
+    format_asciidoc(notes_f)
+
+}
+
+fn get_projects_asiidoc_write_cache(format: fn(&str, &PathBuf) -> String,
+                                    project: &str,
+                                    datadir: &PathBuf,
+                                    cachefile: &PathBuf)
+                                    -> String {
+    let out = format(project, datadir);
 
     let mut project_path = datadir.clone();
     project_path.push(normalize_project_path(project, "csv"));
-    let mtime = File::open(&project_path).unwrap().metadata().unwrap().mtime();
-    let mtime_nsec = File::open(&project_path).unwrap().metadata().unwrap().mtime_nsec() as u32;
-    trace!("mtime: {}", mtime);
-    trace!("mtime_nsec: {}", mtime_nsec);
+
+    let (mtime, mtime_nsec) = match File::open(&project_path) {
+        Ok(file) => {
+            match file.metadata() {
+                Ok(metadata) => (metadata.mtime(), metadata.mtime_nsec() as u32),
+                Err(_) => (0, 0),
+            }
+        }
+        Err(_) => (0, 0),
+    };
+
+    debug!("project file mtime: {}", mtime);
+    debug!("project file mtime_nsec: {}", mtime_nsec);
 
     let modified = NaiveDateTime::from_timestamp(mtime, mtime_nsec);
 
-    trace!("cachefile put: {:#?}", cachefile);
+    debug!("cachefile put: {:#?}", cachefile);
 
     let cache = HTMLCache {
         gitcommit: githelper::get_current_commitid_for_repo(datadir).unwrap(),
