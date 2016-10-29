@@ -109,7 +109,6 @@ fn run(args: Args) {
                 "note" => add_note(command.matches),
                 "notes" => list_notes(command.matches),
                 "projects" => list_projects(command.matches),
-                "migrate" => migrate_notes(command.matches),
                 "web" => run_webapp(command.matches),
                 "repo" => run_git(command.matches),
                 "dates" => run_dates(command.matches),
@@ -349,14 +348,17 @@ fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<R
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or(ALL_PROJECTS);
+    let project_req =
+        req.extensions.get::<Router>().unwrap().find("project").unwrap_or(ALL_PROJECTS);
     let project =
         percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
 
     debug!("project: {}", project);
 
     let out = match project.as_str() {
-        ALL_PROJECTS => format_or_cached_git(format_notes, project.as_str(), &datadir, project.as_str()),
+        ALL_PROJECTS => {
+            format_or_cached_git(format_notes, project.as_str(), &datadir, project.as_str())
+        }
         _ => format_or_cached_modified(format_notes, project.as_str(), &datadir, project.as_str()),
     };
 
@@ -587,101 +589,6 @@ fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<R
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
     Ok(resp)
-}
-
-fn migrate_notes(args: Args) {
-    let datadir = get_datadir(&args);
-    let sourcedir = PathBuf::from(args.value_of("sourcedir").unwrap());
-    debug!("datadir: {:#?}", datadir);
-    debug!("sourcedir: {:#?}", sourcedir);
-
-    for file in WalkDir::new(&sourcedir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_file())
-        .filter(|e| match e.path().extension() {
-            Some(ext) => ext.to_str().unwrap() == "csv",
-            None => false,
-        })
-        .filter(|e| {
-            !e.path().strip_prefix(&sourcedir).unwrap().to_str().unwrap().starts_with('.')
-        }) {
-        trace!("file: {:#?}", file.path());
-
-        let project = file.path()
-            .strip_prefix(&sourcedir)
-            .unwrap()
-            .with_extension("")
-            .to_str()
-            .unwrap()
-            .replace("/", PROJECT_SEPPERATOR);
-
-        info!("Migrating project {}", project);
-
-        let mut rdr =
-            csv::Reader::from_file(file.path()).unwrap().has_headers(false).flexible(true);
-        for record in rdr.decode() {
-            let (entry_type, time_stamp_raw, value): (String, String, String) = record.unwrap();
-
-            trace!("entry_type: {}", entry_type);
-            trace!("time_stamp_raw: {}", time_stamp_raw);
-            trace!("value: {}", value);
-
-            if entry_type != "note" {
-                continue;
-            }
-
-            let time_stamp = time_stamp_raw.as_str().parse().unwrap();
-
-            let note = Note {
-                time_stamp: time_stamp,
-                value: value,
-            };
-            trace!("datadir: {:#?}", datadir);
-            trace!("project: {:#?}", project);
-            trace!("note: {:#?}", note);
-
-            if let Some(_) = write_note(&datadir, project.as_str(), &note) {
-                git_commit_note(&datadir, project.as_str(), &note)
-            }
-        }
-
-        let mut rdr =
-            csv::Reader::from_file(file.path()).unwrap().has_headers(false).flexible(true);
-        for record in rdr.decode() {
-            match record {
-                Ok(_) => {}
-                Err(_) => continue,
-            };
-
-            let (entry_type, time_stamp_raw, value1, value2): (String, String, String, String) =
-                record.unwrap();
-
-            trace!("entry_type: {}", entry_type);
-            trace!("time_stamp_raw: {}", time_stamp_raw);
-            trace!("value1: {}", value1);
-            trace!("value2: {}", value2);
-
-            if entry_type != "todo" {
-                warn!("Don't know how to parse this entry type: {}", entry_type);
-                continue;
-            }
-
-            let time_stamp = time_stamp_raw.as_str().parse().unwrap();
-
-            let todo = Note {
-                time_stamp: time_stamp,
-                value: format!("TODO:: {}", value2),
-            };
-            trace!("datadir: {:#?}", datadir);
-            trace!("project: {:#?}", project);
-            trace!("todo: {:#?}", todo);
-
-            if let Some(_) = write_note(&datadir, project.as_str(), &todo) {
-                git_commit_note(&datadir, project.as_str(), &todo)
-            }
-        }
-    }
 }
 
 fn get_datadir(args: &Args) -> PathBuf {

@@ -22,9 +22,6 @@ _lablog() {
             init)
                 cmd+="_init"
                 ;;
-            migrate)
-                cmd+="_migrate"
-                ;;
             note)
                 cmd+="_note"
                 ;;
@@ -59,7 +56,7 @@ _lablog() {
 
     case "${cmd}" in
         lablog)
-            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes projects migrate web dates timeline repo help"
+            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes projects web dates timeline repo help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -113,29 +110,6 @@ _lablog() {
             fi
             case "${prev}" in
                 
-                *)
-                    COMPREPLY=()
-                    ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-            return 0
-            ;;
-        lablog_migrate)
-            opts=" -S -h -V  --sourcedir --help --version  "
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-                return 0
-            fi
-            case "${prev}" in
-                
-                --sourcedir)
-                    COMPREPLY=("<path>")
-                    return 0
-                    ;;
-                    -S)
-                    COMPREPLY=("<path>")
-                    return 0
-                    ;;
                 *)
                     COMPREPLY=()
                     ;;
