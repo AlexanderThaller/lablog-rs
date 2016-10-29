@@ -80,6 +80,7 @@ use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
 const PROJECT_SEPPERATOR: &'static str = ".";
+const ALL_PROJECTS: &'static str = "_";
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -338,7 +339,7 @@ fn run_webapp(args: Args) {
 }
 
 fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let project = "_";
+    let project = ALL_PROJECTS;
 
     let out = format_or_cached_git(get_timeline, project, &datadir, "_timeline");
 
@@ -348,13 +349,16 @@ fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<R
 }
 
 fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
+    let project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or(ALL_PROJECTS);
     let project =
         percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
 
     debug!("project: {}", project);
 
-    let out = format_or_cached_modified(format_notes, project.as_str(), &datadir, project.as_str());
+    let out = match project.as_str() {
+        ALL_PROJECTS => format_or_cached_git(format_notes, project.as_str(), &datadir, project.as_str()),
+        _ => format_or_cached_modified(format_notes, project.as_str(), &datadir, project.as_str()),
+    };
 
     let mut resp = Response::with((status::Ok, out));
     resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
@@ -524,7 +528,7 @@ fn format_asciidoc(input: String) -> String {
 
 fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
     match project {
-        "_" => get_projects(datadir),
+        ALL_PROJECTS => get_projects(datadir),
         _ => {
             let mut out = DataSet::default();
             out.insert(project.into());
