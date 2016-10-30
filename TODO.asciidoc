@@ -22,5 +22,3 @@
 * globbing for project selection like `athaller.*`
 * allow to disable caching in webinterface either globally by flag or as a page
 parameter
-* timeline should use day as a timestamp instead of the full time, this should
-  merge notes to projects and projects to days or something

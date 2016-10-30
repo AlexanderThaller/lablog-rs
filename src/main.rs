@@ -134,33 +134,32 @@ fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     let projects = projects_or_project(project, datadir);
     let project_notes = get_projects_notes(datadir, &projects);
 
-    #[derive(Debug,RustcEncodable,RustcDecodable)]
-    struct NoteProject {
-        note: Note,
-        project: String,
-    }
-
     let mut timeline = DataMap::default();
     for (project, notes) in project_notes {
         for (timestamp, note) in notes {
-            timeline.insert(timestamp,
-                            NoteProject {
-                                note: note,
-                                project: String::from(project),
-                            });
+            timeline.entry(timestamp.date())
+                .or_insert(DataMap::default())
+                .entry(project)
+                .or_insert(DataMap::default())
+                .insert(timestamp, note);
         }
     }
 
     let mut out = String::new();
-    let header = include_str!("notes.header.asciidoc");
+    let header = include_str!("timeline.header.asciidoc");
     out.push_str(header);
 
     let indentreg = Regex::new(r"(?m)^=").unwrap();
     let indentrepl = "=====";
-    for (timestamp, note) in timeline {
+    for (timestamp, projects) in timeline {
         out.push_str(format!("== {}\n", timestamp).as_str());
-        let indentnote = indentreg.replace_all(note.note.value.as_str(), indentrepl);
-        out.push_str(format!("=== {}\n{}\n\n", note.project, indentnote).as_str());
+        for (project, notes) in projects {
+            out.push_str(format!("=== {}\n", project).as_str());
+            for (timestamp, note) in notes {
+                let indentnote = indentreg.replace_all(note.value.as_str(), indentrepl);
+                out.push_str(format!("==== {}\n{}\n\n", timestamp, indentnote).as_str());
+            }
+        }
     }
 
     out
