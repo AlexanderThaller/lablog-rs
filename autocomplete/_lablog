@@ -85,8 +85,8 @@ _arguments -s -S -C \
 ;;
 (web)
 _arguments -s -S -C \
-"-P+[the address and port to listen on]" \
-"--port+[the address and port to listen on]" \
+"-L+[the address and port to listen on]" \
+"--listen+[the address and port to listen on]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \
@@ -274,6 +274,25 @@ _arguments -s -S -C \
     ;;
 esac
 ;;
+(search)
+_arguments -s -S -C \
+"-p+[to project to search in]" \
+"--project+[to project to search in]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_search_commands" \
+&& ret=0
+;;
 (help)
 _arguments -s -S -C \
 "-h[Prints help information]" \
@@ -337,6 +356,7 @@ _lablog_commands() {
 "dates:list dates when notes where taken" \
 "timeline:list notes sorted by time" \
 "repo:interact with the notes repository" \
+"search:search for given string in notes" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
@@ -419,6 +439,13 @@ _lablog_repo_commands() {
 "help:Prints this message or the help of the given subcommand(s)" \
     )
     _describe -t commands 'lablog repo commands' commands "$@"
+}
+(( $+functions[_lablog_search_commands] )) ||
+_lablog_search_commands() {
+    local commands; commands=(
+        "TEXT:the text to search for" \
+    )
+    _describe -t commands 'lablog search commands' commands "$@"
 }
 (( $+functions[_lablog_repo_sync_commands] )) ||
 _lablog_repo_sync_commands() {

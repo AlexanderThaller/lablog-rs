@@ -113,6 +113,7 @@ fn run(args: Args) {
                 "repo" => run_git(command.matches),
                 "dates" => run_dates(command.matches),
                 "timeline" => run_timeline(command.matches),
+                "search" => run_search(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -121,6 +122,10 @@ fn run(args: Args) {
         }
         None => list_projects(args),
     }
+}
+
+fn run_search(args: Args) {
+    unimplemented!()
 }
 
 fn run_timeline(args: Args) {
