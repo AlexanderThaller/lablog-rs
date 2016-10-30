@@ -160,7 +160,7 @@ fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     for (timestamp, note) in timeline {
         out.push_str(format!("== {}\n", timestamp).as_str());
         let indentnote = indentreg.replace_all(note.note.value.as_str(), indentrepl);
-        out.push_str(format!("=== {}\n{}\n", note.project, indentnote).as_str());
+        out.push_str(format!("=== {}\n{}\n\n", note.project, indentnote).as_str());
     }
 
     out
@@ -459,10 +459,8 @@ fn format_or_cached_git(format: fn(&str, &PathBuf) -> String,
 fn format_notes(project: &str, datadir: &PathBuf) -> String {
     let projects = projects_or_project(project, datadir);
     let notes = get_projects_notes(datadir, &projects);
-    let notes_f = format_projects_notes(notes);
 
-    format_asciidoc(notes_f)
-
+    format_projects_notes(notes)
 }
 
 fn get_projects_asiidoc_write_cache(format: fn(&str, &PathBuf) -> String,
@@ -470,7 +468,9 @@ fn get_projects_asiidoc_write_cache(format: fn(&str, &PathBuf) -> String,
                                     datadir: &PathBuf,
                                     cachefile: &PathBuf)
                                     -> String {
-    let out = format(project, datadir);
+    let asciidoc = format(project, datadir);
+    let out = format_asciidoc(asciidoc);
+
 
     let mut project_path = datadir.clone();
     project_path.push(normalize_project_path(project, "csv"));
