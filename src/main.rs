@@ -571,6 +571,23 @@ fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<R
             body {
                 h1 { : "Projects" }
                 table {
+                    tr {
+                            td {
+                                a(href="/notes/_") {
+                                    : "All projects"
+                                }
+                            }
+                    }
+                    tr {
+                        td {
+                            a(href="/timeline/") {
+                                : "Timeline"
+                            }
+                        }
+                    }
+                }
+                hr{}
+                table {
                     @ for project in projects {
                         tr {
                             td {
@@ -762,7 +779,9 @@ fn get_notes(project_path: PathBuf) -> DataMap<DateTime<UTC>, Note> {
 }
 
 fn normalize_project_path(project: &str, extention: &str) -> String {
-    format!("{}.{}", project.replace(".", "/").as_str(), extention)
+    format!("{}.{}",
+            project.replace(PROJECT_SEPPERATOR, "/").as_str(),
+            extention)
 }
 
 fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
