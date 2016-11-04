@@ -22,3 +22,4 @@
 * globbing for project selection like `athaller.*`
 * allow to disable caching in webinterface either globally by flag or as a page
 parameter
+* timeline print last n entries only
