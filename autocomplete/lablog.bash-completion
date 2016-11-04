@@ -40,6 +40,9 @@ _lablog() {
             repo)
                 cmd+="_repo"
                 ;;
+            search)
+                cmd+="_search"
+                ;;
             sync)
                 cmd+="_sync"
                 ;;
@@ -56,7 +59,7 @@ _lablog() {
 
     case "${cmd}" in
         lablog)
-            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes projects web dates timeline repo help"
+            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes projects web dates timeline repo search help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -268,6 +271,29 @@ _lablog() {
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
             return 0
             ;;
+        lablog_search)
+            opts=" -p -h -V  --project --help --version  <text> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --project)
+                    COMPREPLY=("<project>")
+                    return 0
+                    ;;
+                    -p)
+                    COMPREPLY=("<project>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
         lablog_timeline)
             opts=" -h -V  --help --version  <project> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -284,18 +310,18 @@ _lablog() {
             return 0
             ;;
         lablog_web)
-            opts=" -P -h -V  --port --help --version  "
+            opts=" -L -h -V  --listen --help --version  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
             fi
             case "${prev}" in
                 
-                --port)
+                --listen)
                     COMPREPLY=("<adress:port>")
                     return 0
                     ;;
-                    -P)
+                    -L)
                     COMPREPLY=("<adress:port>")
                     return 0
                     ;;

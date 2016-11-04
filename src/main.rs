@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #![feature(custom_derive)]
+#![feature(insert_str)]
+
 #[macro_use]
 extern crate clap;
 
@@ -113,6 +115,7 @@ fn run(args: Args) {
                 "repo" => run_git(command.matches),
                 "dates" => run_dates(command.matches),
                 "timeline" => run_timeline(command.matches),
+                "search" => run_search(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -121,6 +124,62 @@ fn run(args: Args) {
         }
         None => list_projects(args),
     }
+}
+
+fn run_search(args: Args) {
+    trace!("list_notes args: {:#?}", args);
+    let datadir = get_datadir(&args);
+    let project_arg = args.value_of("project").unwrap();
+    let text = args.value_of("text").unwrap();
+    debug!("project_arg: {}", project_arg);
+    debug!("text: {}", text);
+
+    let projects = projects_or_project(project_arg, &datadir);
+    let project_notes = get_projects_notes(&datadir, &projects);
+    trace!("project_notes: {:#?}", project_notes);
+    let re = Regex::new(text).unwrap();
+
+    let mut searched = DataMap::default();
+    for (project, notes) in project_notes {
+        for (_, note) in notes {
+            for line in note.value.lines() {
+                if re.is_match(line) {
+                    debug!("match on line: {}", line);
+
+                    let find = re.find(line).unwrap();
+
+                    debug!("find: {:#?}", find);
+
+                    let mut replaced = String::from(line);
+                    replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
+                    replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
+
+                    debug!("replaced: {}", replaced);
+
+                    searched.entry(project)
+                        .or_insert(DataSet::default())
+                        .insert(replaced);
+                }
+            }
+        }
+    }
+
+    let mut out = String::new();
+
+    let header = include_str!("notes.header.asciidoc");
+    out.push_str(header);
+
+    for (project, notes) in searched {
+        out.push_str(format!("== {}\n", project).as_str());
+        for note in notes {
+            out.push_str(note.as_str());
+            out.push_str("\n");
+        }
+
+        out.push_str("\n\n");
+    }
+
+    println!("{}", out);
 }
 
 fn run_timeline(args: Args) {

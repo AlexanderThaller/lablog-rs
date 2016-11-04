@@ -92,8 +92,8 @@ subcommands:
       args:
         - listen_address:
             help: the address and port to listen on
-            long: port
-            short: P
+            long: listen
+            short: L
             takes_value: true
             default_value: "0.0.0.0:18080"
             value_name: adress:port
@@ -133,3 +133,19 @@ subcommands:
                   short: R
                   takes_value: true
                   value_name: address
+  - search:
+      about: search for given string in notes
+      args:
+        - project:
+            help: to project to search in
+            long: project
+            short: p
+            takes_value: true
+            default_value: "_"
+            value_name: project
+        - text:
+            help: the text to search for
+            takes_value: true
+            value_name: text
+            index: 1
+            required: true
