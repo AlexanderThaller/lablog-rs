@@ -141,7 +141,7 @@ fn run_search(args: Args) {
 
     let mut searched = DataMap::default();
     for (project, notes) in project_notes {
-        for (_, note) in notes {
+        for note in notes.values() {
             for line in note.value.lines() {
                 if re.is_match(line) {
                     debug!("match on line: {}", line);
@@ -157,7 +157,7 @@ fn run_search(args: Args) {
                     debug!("replaced: {}", replaced);
 
                     searched.entry(project)
-                        .or_insert(DataSet::default())
+                        .or_insert_with(DataSet::default)
                         .insert(replaced);
                 }
             }
@@ -197,9 +197,9 @@ fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     for (project, notes) in project_notes {
         for (timestamp, note) in notes {
             timeline.entry(timestamp.date())
-                .or_insert(DataMap::default())
+                .or_insert_with(DataMap::default)
                 .entry(project)
-                .or_insert(DataMap::default())
+                .or_insert_with(DataMap::default)
                 .insert(timestamp, note);
         }
     }
@@ -709,7 +709,7 @@ fn add_note(args: Args) {
         value: text.into(),
     };
 
-    if let Some(_) = write_note(&datadir, project, &note) {
+    if write_note(&datadir, project, &note).is_some() {
         git_commit_note(&datadir, project, &note)
     }
 }
