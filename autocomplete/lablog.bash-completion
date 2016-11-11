@@ -91,13 +91,29 @@ _lablog() {
             ;;
         
         lablog_dates)
-            opts=" -h -V  --help --version  <project> "
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
             fi
             case "${prev}" in
                 
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -144,13 +160,29 @@ _lablog() {
             return 0
             ;;
         lablog_notes)
-            opts=" -h -V  --help --version  <project> "
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
             fi
             case "${prev}" in
                 
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -272,7 +304,7 @@ _lablog() {
             return 0
             ;;
         lablog_search)
-            opts=" -p -h -V  --project --help --version  <text> "
+            opts=" -p -B -A -h -V  --project --before --after --help --version  <text> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -287,6 +319,22 @@ _lablog() {
                     COMPREPLY=("<project>")
                     return 0
                     ;;
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -295,13 +343,29 @@ _lablog() {
             return 0
             ;;
         lablog_timeline)
-            opts=" -h -V  --help --version  <project> "
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
             fi
             case "${prev}" in
                 
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
