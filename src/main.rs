@@ -127,7 +127,7 @@ fn run(args: Args) {
 }
 
 fn run_search(args: Args) {
-    trace!("list_notes args: {:#?}", args);
+    trace!("run_search args: {:#?}", args);
     let datadir = get_datadir(&args);
     let project_arg = args.value_of("project").unwrap();
     let text = args.value_of("text").unwrap();
@@ -759,7 +759,50 @@ fn list_notes(args: Args) {
     let projects = projects_or_project(project_arg, &datadir);
     let project_notes = get_projects_notes(&datadir, &projects);
     trace!("project_notes: {:#?}", project_notes);
-    println!("{}", format_projects_notes(project_notes));
+
+    let before_notes = match args.value_of("filter_before") {
+        Some(filter) => {
+            debug!("filter notes before {}", filter);
+            let filter_timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from before parameter");
+            debug!("filter notes before timestamp: {:#?}", filter_timestamp);
+
+            let mut filtered_notes = DataMap::default();
+            for (project, notes) in project_notes {
+                let filternotes: DataMap<_, _> = notes.iter()
+                    .filter(|(timestamp, _)| timestamp < filter_timestamp)
+                    .collect();
+
+                if filternotes.len() > 0 {
+                    filtered_notes.insert(project, filternotes).unwrap();
+                }
+            }
+
+            debug!("filtered_notes_before: {:#?}", filtered_notes);
+
+            filtered_notes
+        }
+        None => project_notes,
+    };
+
+    let after_notes = match args.value_of("filter_after") {
+        Some(filter) => {
+            debug!("filter notes after {}", filter);
+            let filter_timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from after parameter");
+            debug!("filter notes before timestamp: {:#?}", filter_timestamp);
+
+            let mut filtered_notes = DataMap::default();
+            filtered_notes
+        }
+        None => before_notes,
+    };
+
+    println!("{}", format_projects_notes(after_notes));
+}
+
+fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
+    UTC.datetime_from_str(input, "%Y-%m-%d %H:%M:%S")
 }
 
 fn get_projects_notes<'a>(datadir: &PathBuf,
