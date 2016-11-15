@@ -230,8 +230,32 @@ fn run_dates(args: Args) {
     let projects = projects_or_project(project_arg, &datadir);
     let project_notes = get_projects_notes(&datadir, &projects);
 
+    let before_notes = match args.value_of("filter_before") {
+        Some(filter) => {
+            debug!("filter notes before timestamp {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from parameter");
+            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(project_notes, timestamp, true)
+        }
+        None => project_notes,
+    };
+
+    let after_notes = match args.value_of("filter_after") {
+        Some(filter) => {
+            debug!("filter notes after {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from after parameter");
+            debug!("filter notes before timestamp: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(before_notes, timestamp, false)
+        }
+        None => before_notes,
+    };
+
     let mut dates = DataMap::default();
-    for notes in project_notes.values() {
+    for notes in after_notes.values() {
         for timestamp in notes.keys() {
             *dates.entry(timestamp.date()).or_insert(0) += 1;
         }
@@ -762,25 +786,12 @@ fn list_notes(args: Args) {
 
     let before_notes = match args.value_of("filter_before") {
         Some(filter) => {
-            debug!("filter notes before {}", filter);
-            let filter_timestamp = try_multiple_time_parser(filter)
-                .expect("can not parse timestamp from before parameter");
-            debug!("filter notes before timestamp: {:#?}", filter_timestamp);
+            debug!("filter notes before timestamp {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from parameter");
+            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
 
-            let mut filtered_notes = DataMap::default();
-            for (project, notes) in project_notes {
-                let filternotes: DataMap<_, _> = notes.iter()
-                    .filter(|(timestamp, _)| timestamp < filter_timestamp)
-                    .collect();
-
-                if filternotes.len() > 0 {
-                    filtered_notes.insert(project, filternotes).unwrap();
-                }
-            }
-
-            debug!("filtered_notes_before: {:#?}", filtered_notes);
-
-            filtered_notes
+            filter_notes_by_timestamp(project_notes, timestamp, true)
         }
         None => project_notes,
     };
@@ -788,12 +799,11 @@ fn list_notes(args: Args) {
     let after_notes = match args.value_of("filter_after") {
         Some(filter) => {
             debug!("filter notes after {}", filter);
-            let filter_timestamp = try_multiple_time_parser(filter)
+            let timestamp = try_multiple_time_parser(filter)
                 .expect("can not parse timestamp from after parameter");
-            debug!("filter notes before timestamp: {:#?}", filter_timestamp);
+            debug!("filter notes before timestamp: {:#?}", timestamp);
 
-            let mut filtered_notes = DataMap::default();
-            filtered_notes
+            filter_notes_by_timestamp(before_notes, timestamp, false)
         }
         None => before_notes,
     };
@@ -801,8 +811,33 @@ fn list_notes(args: Args) {
     println!("{}", format_projects_notes(after_notes));
 }
 
+fn filter_notes_by_timestamp<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>,
+                                 timestamp: DateTime<UTC>,
+                                 before: bool)
+                                 -> DataMap<&'a str, DataMap<DateTime<UTC>, Note>> {
+
+    let mut filtered_notes = DataMap::default();
+    for (project, notes) in notes {
+        let filternotes: DataMap<_, _> = notes.into_iter()
+            .filter(|&(note_timestamp, _)| if before {
+                note_timestamp >= timestamp
+            } else {
+                note_timestamp <= timestamp
+            })
+            .collect();
+
+        if filternotes.len() > 0 {
+            filtered_notes.insert(project, filternotes);
+        }
+    }
+
+    debug!("filtered_notes_before: {:#?}", filtered_notes);
+
+    filtered_notes
+}
+
 fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
-    UTC.datetime_from_str(input, "%Y-%m-%d %H:%M:%S")
+    UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S")
 }
 
 fn get_projects_notes<'a>(datadir: &PathBuf,
