@@ -208,16 +208,39 @@ fn run_search(args: Args) {
 fn run_timeline(args: Args) {
     let datadir = get_datadir(&args);
     let project = args.value_of("project").unwrap();
+    let projects = projects_or_project(project, &datadir);
+    let project_notes = get_projects_notes(&datadir, &projects);
 
-    println!("{}", get_timeline(project, &datadir));
+    let before_notes = match args.value_of("filter_before") {
+        Some(filter) => {
+            debug!("filter notes before timestamp {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from parameter");
+            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(project_notes, timestamp, true)
+        }
+        None => project_notes,
+    };
+
+    let after_notes = match args.value_of("filter_after") {
+        Some(filter) => {
+            debug!("filter notes after {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from after parameter");
+            debug!("filter notes before timestamp: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(before_notes, timestamp, false)
+        }
+        None => before_notes,
+    };
+
+    println!("{}", get_timeline_for_notes(after_notes));
 }
 
-fn get_timeline(project: &str, datadir: &PathBuf) -> String {
-    let projects = projects_or_project(project, datadir);
-    let project_notes = get_projects_notes(datadir, &projects);
-
+fn get_timeline_for_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>) -> String {
     let mut timeline = DataMap::default();
-    for (project, notes) in project_notes {
+    for (project, notes) in notes {
         for (timestamp, note) in notes {
             timeline.entry(timestamp.date())
                 .or_insert_with(DataMap::default)
@@ -245,6 +268,13 @@ fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     }
 
     out
+}
+
+fn get_timeline(project: &str, datadir: &PathBuf) -> String {
+    let projects = projects_or_project(project, datadir);
+    let project_notes = get_projects_notes(datadir, &projects);
+
+    get_timeline_for_notes(project_notes)
 }
 
 fn run_dates(args: Args) {
