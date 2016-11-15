@@ -90,13 +90,13 @@ subcommands:
             takes_value: true
             long: before
             short: B
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
         - filter_after:
             help: filter all notes that lay after the given date
             takes_value: true
             long: after
             short: A
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
   - projects:
       about: list all projects available
   - web:
@@ -123,13 +123,13 @@ subcommands:
             takes_value: true
             long: before
             short: B
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
         - filter_after:
             help: filter all notes that lay after the given date
             takes_value: true
             long: after
             short: A
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
   - timeline:
       about: list notes sorted by time
       args:
@@ -144,13 +144,13 @@ subcommands:
             takes_value: true
             long: before
             short: B
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
         - filter_after:
             help: filter all notes that lay after the given date
             takes_value: true
             long: after
             short: A
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
   - repo:
       about: interact with the notes repository
       subcommands:
@@ -190,10 +190,10 @@ subcommands:
             takes_value: true
             long: before
             short: B
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
         - filter_after:
             help: filter all notes that lay after the given date
             takes_value: true
             long: after
             short: A
-            value_name: timestamp
+            value_name: date (%Y-%m-%d)
