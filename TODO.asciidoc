@@ -1,8 +1,8 @@
 * Edit entries
 * Filter
 ** Date (begin, end)
-*** Timestamp
 *** Natural (yesterday, last week)
+*** Webinterface
 ** Project (glob or regex)
 * Archiving
 * Search
