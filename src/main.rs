@@ -136,11 +136,34 @@ fn run_search(args: Args) {
 
     let projects = projects_or_project(project_arg, &datadir);
     let project_notes = get_projects_notes(&datadir, &projects);
-    trace!("project_notes: {:#?}", project_notes);
+    let before_notes = match args.value_of("filter_before") {
+        Some(filter) => {
+            debug!("filter notes before timestamp {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from parameter");
+            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(project_notes, timestamp, true)
+        }
+        None => project_notes,
+    };
+
+    let after_notes = match args.value_of("filter_after") {
+        Some(filter) => {
+            debug!("filter notes after {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from after parameter");
+            debug!("filter notes before timestamp: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(before_notes, timestamp, false)
+        }
+        None => before_notes,
+    };
+    trace!("project_notes: {:#?}", after_notes);
     let re = Regex::new(text).unwrap();
 
     let mut searched = DataMap::default();
-    for (project, notes) in project_notes {
+    for (project, notes) in after_notes {
         for note in notes.values() {
             for line in note.value.lines() {
                 if re.is_match(line) {
