@@ -238,7 +238,7 @@ fn run_timeline(args: Args) {
     println!("{}", get_timeline_for_notes(after_notes));
 }
 
-fn get_timeline_for_notes<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>) -> String {
+fn get_timeline_for_notes(notes: DataMap<&str, DataMap<DateTime<UTC>, Note>>) -> String {
     let mut timeline = DataMap::default();
     for (project, notes) in notes {
         for (timestamp, note) in notes {
@@ -864,10 +864,10 @@ fn list_notes(args: Args) {
     println!("{}", format_projects_notes(after_notes));
 }
 
-fn filter_notes_by_timestamp<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, Note>>,
-                                 timestamp: DateTime<UTC>,
-                                 before: bool)
-                                 -> DataMap<&'a str, DataMap<DateTime<UTC>, Note>> {
+fn filter_notes_by_timestamp(notes: DataMap<&str, DataMap<DateTime<UTC>, Note>>,
+                             timestamp: DateTime<UTC>,
+                             before: bool)
+                             -> DataMap<&str, DataMap<DateTime<UTC>, Note>> {
 
     let mut filtered_notes = DataMap::default();
     for (project, notes) in notes {
@@ -879,7 +879,7 @@ fn filter_notes_by_timestamp<'a>(notes: DataMap<&'a str, DataMap<DateTime<UTC>, 
             })
             .collect();
 
-        if filternotes.len() > 0 {
+        if filternotes.is_empty() {
             filtered_notes.insert(project, filternotes);
         }
     }
