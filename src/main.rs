@@ -63,6 +63,7 @@ use log::LogLevel;
 use regex::Regex;
 use router::Router;
 use rustc_serialize::json;
+use std::cmp::Ordering;
 use std::collections::BTreeMap as DataMap;
 use std::collections::BTreeSet as DataSet;
 use std::env;
@@ -134,7 +135,7 @@ fn run_search(args: Args) {
 
     let mut searched = DataMap::default();
     for (project, notes) in notes {
-        for note in notes.values() {
+        for note in notes {
             for line in note.value.lines() {
                 if re.is_match(line) {
                     debug!("match on line: {}", line);
@@ -183,12 +184,12 @@ fn run_timeline(args: Args) {
 fn get_timeline_for_notes(notes: Notes) -> String {
     let mut timeline = DataMap::default();
     for (project, notes) in notes {
-        for (timestamp, note) in notes {
-            timeline.entry(timestamp.date())
+        for note in notes {
+            timeline.entry(note.time_stamp.date())
                 .or_insert_with(DataMap::default)
                 .entry(project.clone())
                 .or_insert_with(DataMap::default)
-                .insert(timestamp, note);
+                .insert(note.time_stamp, note);
         }
     }
 
@@ -255,8 +256,8 @@ fn run_dates(args: Args) {
 
     let mut dates = DataMap::default();
     for notes in notes.values() {
-        for timestamp in notes.keys() {
-            *dates.entry(timestamp.date()).or_insert(0) += 1;
+        for note in notes {
+            *dates.entry(note.time_stamp.date()).or_insert(0) += 1;
         }
     }
 
@@ -631,9 +632,9 @@ fn format_projects_notes(notes: Notes) -> String {
 
     for (project, notes) in notes {
         out.push_str(format!("== {}\n", project).as_str());
-        for (time_stamp, note) in notes {
+        for note in notes {
             let indentnote = indentreg.replace_all(note.value.as_str(), indentrepl);
-            out.push_str(format!("=== {}\n{}\n\n", time_stamp, indentnote).as_str())
+            out.push_str(format!("=== {}\n{}\n\n", note.time_stamp, indentnote).as_str())
         }
     }
 
@@ -779,14 +780,13 @@ fn list_notes(args: Args) {
 }
 
 fn filter_notes_by_timestamp(notes: Notes, timestamp: DateTime<UTC>, before: bool) -> Notes {
-
     let mut filtered_notes = DataMap::default();
     for (project, notes) in notes {
-        let filternotes: DataMap<_, _> = notes.into_iter()
-            .filter(|&(note_timestamp, _)| if before {
-                note_timestamp >= timestamp
+        let filternotes: DataSet<Note> = notes.into_iter()
+            .filter(|note| if before {
+                note.time_stamp >= timestamp
             } else {
-                note_timestamp <= timestamp
+                note.time_stamp <= timestamp
             })
             .collect();
 
@@ -861,8 +861,8 @@ fn get_projects(datadir: &PathBuf) -> DataSet<String> {
     projects
 }
 
-fn get_notes(project_path: PathBuf) -> DataMap<DateTime<UTC>, Note> {
-    let mut map = DataMap::default();
+fn get_notes(project_path: PathBuf) -> DataSet<Note> {
+    let mut map = DataSet::default();
     let mut rdr = csv::Reader::from_file(project_path).unwrap().has_headers(false);
 
     for record in rdr.decode() {
@@ -870,7 +870,7 @@ fn get_notes(project_path: PathBuf) -> DataMap<DateTime<UTC>, Note> {
 
         trace!("note: {:#?}", note);
 
-        map.insert(note.time_stamp, note);
+        map.insert(note);
     }
 
     map
@@ -908,19 +908,37 @@ fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
 
 fn file_to_string(filepath: &Path) -> IOResult<String> {
     let mut s = String::new();
-    let mut f = try!(File::open(filepath));
-    try!(f.read_to_string(&mut s));
+    let mut f = File::open(filepath)?;
+    f.read_to_string(&mut s)?;
 
     Ok(s)
 }
 
-#[derive(Debug,RustcEncodable,RustcDecodable)]
+#[derive(Debug,RustcEncodable,RustcDecodable,Eq)]
 struct Note {
     time_stamp: DateTime<UTC>,
     value: String,
 }
 
-type Notes = DataMap<String, DataMap<DateTime<UTC>, Note>>;
+impl Ord for Note {
+    fn cmp(&self, other: &Note) -> Ordering {
+        self.time_stamp.cmp(&other.time_stamp)
+    }
+}
+
+impl PartialOrd for Note {
+    fn partial_cmp(&self, other: &Note) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Note {
+    fn eq(&self, other: &Note) -> bool {
+        self.time_stamp == other.time_stamp
+    }
+}
+
+type Notes = DataMap<String, DataSet<Note>>;
 
 #[derive(Debug,RustcEncodable,RustcDecodable)]
 struct HTMLCache {
