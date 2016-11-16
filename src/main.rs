@@ -243,7 +243,7 @@ fn get_filtered_notes(args: &Args) -> Notes {
             debug!("filter notes after {}", filter);
             let timestamp = try_multiple_time_parser(filter)
                 .expect("can not parse timestamp from after parameter");
-            debug!("filter notes before timestamp: {:#?}", timestamp);
+            debug!("filter notes after timestamp: {:#?}", timestamp);
 
             filter_notes_by_timestamp(before_notes, timestamp, false)
         }
@@ -780,28 +780,50 @@ fn list_notes(args: Args) {
 }
 
 fn filter_notes_by_timestamp(notes: Notes, timestamp: DateTime<UTC>, before: bool) -> Notes {
+    trace!("notes before filter: {:#?}", notes);
+
     let mut filtered_notes = DataMap::default();
     for (project, notes) in notes {
-        let filternotes: DataSet<Note> = notes.into_iter()
-            .filter(|note| if before {
-                note.time_stamp >= timestamp
-            } else {
-                note.time_stamp <= timestamp
+        let filternotes: DataSet<_> = notes.into_iter()
+            .filter(|note| {
+                trace!("filter note: {:#?}", note);
+                trace!("timestamp: {:#?}", timestamp);
+
+                let yield_note = if before {
+                    debug!("filter before");
+                    note.time_stamp >= timestamp
+                } else {
+                    debug!("filter after");
+                    note.time_stamp <= timestamp
+                };
+
+                trace!("yield: {}", yield_note);
+
+                yield_note
             })
             .collect();
 
-        if filternotes.is_empty() {
+        if !filternotes.is_empty() {
+            debug!("filternotes is not empty");
             filtered_notes.insert(project, filternotes);
         }
     }
 
-    debug!("filtered_notes_before: {:#?}", filtered_notes);
+    trace!("notes after filter: {:#?}", filtered_notes);
 
     filtered_notes
 }
 
 fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
-    UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S")
+    input.parse()
+        .or(UTC.datetime_from_str(input, "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}-01 00:00:00", input).as_str(),
+                                  "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}-01-01 00:00:00", input).as_str(),
+                                  "%Y-%m-%d %H:%M:%S"))
 }
 
 fn get_projects_notes(datadir: &PathBuf, projects: DataSet<String>) -> Notes {

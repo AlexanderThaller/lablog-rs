@@ -99,19 +99,19 @@ _lablog() {
             case "${prev}" in
                 
                 --before)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -B)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 --after)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -A)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 *)
@@ -168,19 +168,19 @@ _lablog() {
             case "${prev}" in
                 
                 --before)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -B)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 --after)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -A)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 *)
@@ -320,19 +320,19 @@ _lablog() {
                     return 0
                     ;;
                 --before)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -B)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 --after)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -A)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 *)
@@ -351,19 +351,19 @@ _lablog() {
             case "${prev}" in
                 
                 --before)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -B)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 --after)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                     -A)
-                    COMPREPLY=("<date (%Y-%m-%d)>")
+                    COMPREPLY=("<timestamp>")
                     return 0
                     ;;
                 *)
