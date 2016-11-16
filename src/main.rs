@@ -180,7 +180,7 @@ fn run_timeline(args: Args) {
     println!("{}", get_timeline_for_notes(notes));
 }
 
-fn get_timeline_for_notes(notes: DataMap<String, DataMap<DateTime<UTC>, Note>>) -> String {
+fn get_timeline_for_notes(notes: Notes) -> String {
     let mut timeline = DataMap::default();
     for (project, notes) in notes {
         for (timestamp, note) in notes {
@@ -219,7 +219,7 @@ fn get_timeline(project: &str, datadir: &PathBuf) -> String {
     get_timeline_for_notes(project_notes)
 }
 
-fn get_filtered_notes(args: &Args) -> DataMap<String, DataMap<DateTime<UTC>, Note>> {
+fn get_filtered_notes(args: &Args) -> Notes {
     let datadir = get_datadir(args);
     let project_arg = args.value_of("project").unwrap();
     let projects = projects_or_project(project_arg, &datadir);
@@ -620,7 +620,7 @@ fn projects_or_project(project: &str, datadir: &PathBuf) -> DataSet<String> {
     }
 }
 
-fn format_projects_notes(notes: DataMap<String, DataMap<DateTime<UTC>, Note>>) -> String {
+fn format_projects_notes(notes: Notes) -> String {
     let mut out = String::new();
 
     let header = include_str!("notes.header.asciidoc");
@@ -778,10 +778,7 @@ fn list_notes(args: Args) {
     println!("{}", format_projects_notes(notes));
 }
 
-fn filter_notes_by_timestamp(notes: DataMap<String, DataMap<DateTime<UTC>, Note>>,
-                             timestamp: DateTime<UTC>,
-                             before: bool)
-                             -> DataMap<String, DataMap<DateTime<UTC>, Note>> {
+fn filter_notes_by_timestamp(notes: Notes, timestamp: DateTime<UTC>, before: bool) -> Notes {
 
     let mut filtered_notes = DataMap::default();
     for (project, notes) in notes {
@@ -807,9 +804,7 @@ fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
     UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S")
 }
 
-fn get_projects_notes(datadir: &PathBuf,
-                      projects: DataSet<String>)
-                      -> DataMap<String, DataMap<DateTime<UTC>, Note>> {
+fn get_projects_notes(datadir: &PathBuf, projects: DataSet<String>) -> Notes {
     let mut map = DataMap::default();
 
     for project in projects {
@@ -911,12 +906,6 @@ fn write_note(datadir: &PathBuf, project: &str, note: &Note) -> Option<()> {
     Some(())
 }
 
-#[derive(Debug,RustcEncodable,RustcDecodable)]
-struct Note {
-    time_stamp: DateTime<UTC>,
-    value: String,
-}
-
 fn file_to_string(filepath: &Path) -> IOResult<String> {
     let mut s = String::new();
     let mut f = try!(File::open(filepath));
@@ -924,6 +913,14 @@ fn file_to_string(filepath: &Path) -> IOResult<String> {
 
     Ok(s)
 }
+
+#[derive(Debug,RustcEncodable,RustcDecodable)]
+struct Note {
+    time_stamp: DateTime<UTC>,
+    value: String,
+}
+
+type Notes = DataMap<String, DataMap<DateTime<UTC>, Note>>;
 
 #[derive(Debug,RustcEncodable,RustcDecodable)]
 struct HTMLCache {
