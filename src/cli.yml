@@ -22,7 +22,7 @@
 
 name: lablog
 author: Alexander Thaller <alexander@thaller.ws>
-about: lablog orders notes and todos into projects and subprojects without dictating a specific format
+about: lablog orders notes into projects and subprojects without dictating a specific format
 settings:
   - ColorAuto
 args:
@@ -84,7 +84,6 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
-            default_value: "_"
         - filter_before:
             help: filter all notes that lay before the given date
             takes_value: true
@@ -99,6 +98,12 @@ subcommands:
             value_name: timestamp
   - projects:
       about: list all projects available
+      args:
+        - project:
+            help: filter projects by the given project
+            takes_value: true
+            value_name: project
+            index: 1
   - web:
       about: start a webserver and serve notes over http
       args:
@@ -117,7 +122,6 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
-            default_value: "_"
         - filter_before:
             help: filter all notes that lay before the given date
             takes_value: true
@@ -138,7 +142,6 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
-            default_value: "_"
         - filter_before:
             help: filter all notes that lay before the given date
             takes_value: true
@@ -177,7 +180,6 @@ subcommands:
             long: project
             short: p
             takes_value: true
-            default_value: "_"
             value_name: project
         - text:
             help: the text to search for

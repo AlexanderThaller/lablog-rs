@@ -85,6 +85,7 @@ _arguments -s -S -C \
 "--help[Prints help information]" \
 "-V[Prints version information]" \
 "--version[Prints version information]" \
+"1:: :_lablog_projects_commands" \
 && ret=0
 ;;
 (web)
@@ -425,7 +426,7 @@ _lablog_notes_commands() {
 (( $+functions[_lablog_projects_commands] )) ||
 _lablog_projects_commands() {
     local commands; commands=(
-        
+        "PROJECT:filter projects by the given project" \
     )
     _describe -t commands 'lablog projects commands' commands "$@"
 }
