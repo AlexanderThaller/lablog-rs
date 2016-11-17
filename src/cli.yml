@@ -24,7 +24,9 @@ name: lablog
 author: Alexander Thaller <alexander@thaller.ws>
 about: lablog orders notes into projects and subprojects without dictating a specific format
 settings:
-  - ColorAuto
+  - ColoredHelp
+  - GlobalVersion
+  - NextLineHelp
 args:
     - loglevel:
         help: the loglevel to run under
