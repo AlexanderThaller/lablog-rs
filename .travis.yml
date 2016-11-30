@@ -21,7 +21,10 @@ matrix:
       sudo: required
       addons:
         apt:
-          packages: *musl_packages
+          packages: &musl_packages
+          - musl
+          - musl-dev
+          - musl-tools
   allow_failures:
 
 before_install:
