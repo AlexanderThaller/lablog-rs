@@ -87,13 +87,13 @@ subcommands:
             value_name: project
             index: 1
         - filter_before:
-            help: filter all notes that lay before the given date
+            help: print all notes before the given timestamp
             takes_value: true
             long: before
             short: B
             value_name: timestamp
         - filter_after:
-            help: filter all notes that lay after the given date
+            help: print all notes after the given timestamp
             takes_value: true
             long: after
             short: A
@@ -125,13 +125,13 @@ subcommands:
             value_name: project
             index: 1
         - filter_before:
-            help: filter all notes that lay before the given date
+            help: print all notes before the given timestamp
             takes_value: true
             long: before
             short: B
             value_name: timestamp
         - filter_after:
-            help: filter all notes that lay after the given date
+            help: print all notes after the given timestamp
             takes_value: true
             long: after
             short: A
@@ -145,13 +145,13 @@ subcommands:
             value_name: project
             index: 1
         - filter_before:
-            help: filter all notes that lay before the given date
+            help: print all notes before the given timestamp
             takes_value: true
             long: before
             short: B
             value_name: timestamp
         - filter_after:
-            help: filter all notes that lay after the given date
+            help: print all notes after the given timestamp
             takes_value: true
             long: after
             short: A
@@ -190,13 +190,13 @@ subcommands:
             index: 1
             required: true
         - filter_before:
-            help: filter all notes that lay before the given date
+            help: print all notes before the given timestamp
             takes_value: true
             long: before
             short: B
             value_name: timestamp
         - filter_after:
-            help: filter all notes that lay after the given date
+            help: print all notes after the given timestamp
             takes_value: true
             long: after
             short: A

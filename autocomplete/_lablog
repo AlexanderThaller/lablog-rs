@@ -52,10 +52,10 @@ _arguments -s -S -C \
 ;;
 (notes)
 _arguments -s -S -C \
-"-B+[filter all notes that lay before the given date]" \
-"--before+[filter all notes that lay before the given date]" \
-"-A+[filter all notes that lay after the given date]" \
-"--after+[filter all notes that lay after the given date]" \
+"-B+[print all notes before the given timestamp]" \
+"--before+[print all notes before the given timestamp]" \
+"-A+[print all notes after the given timestamp]" \
+"--after+[print all notes after the given timestamp]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \
@@ -108,10 +108,10 @@ _arguments -s -S -C \
 ;;
 (dates)
 _arguments -s -S -C \
-"-B+[filter all notes that lay before the given date]" \
-"--before+[filter all notes that lay before the given date]" \
-"-A+[filter all notes that lay after the given date]" \
-"--after+[filter all notes that lay after the given date]" \
+"-B+[print all notes before the given timestamp]" \
+"--before+[print all notes before the given timestamp]" \
+"-A+[print all notes after the given timestamp]" \
+"--after+[print all notes after the given timestamp]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \
@@ -129,10 +129,10 @@ _arguments -s -S -C \
 ;;
 (timeline)
 _arguments -s -S -C \
-"-B+[filter all notes that lay before the given date]" \
-"--before+[filter all notes that lay before the given date]" \
-"-A+[filter all notes that lay after the given date]" \
-"--after+[filter all notes that lay after the given date]" \
+"-B+[print all notes before the given timestamp]" \
+"--before+[print all notes before the given timestamp]" \
+"-A+[print all notes after the given timestamp]" \
+"--after+[print all notes after the given timestamp]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \
@@ -291,10 +291,10 @@ esac
 _arguments -s -S -C \
 "-p+[to project to search in]" \
 "--project+[to project to search in]" \
-"-B+[filter all notes that lay before the given date]" \
-"--before+[filter all notes that lay before the given date]" \
-"-A+[filter all notes that lay after the given date]" \
-"--after+[filter all notes that lay after the given date]" \
+"-B+[print all notes before the given timestamp]" \
+"--before+[print all notes before the given timestamp]" \
+"-A+[print all notes after the given timestamp]" \
+"--after+[print all notes after the given timestamp]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \

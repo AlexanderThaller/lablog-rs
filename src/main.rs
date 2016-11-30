@@ -19,9 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#![feature(custom_derive)]
-#![feature(insert_str)]
-
 #[macro_use]
 extern crate clap;
 
@@ -321,9 +318,13 @@ fn run_search(args: Args) {
 
                     debug!("find: {:#?}", find);
 
-                    let mut replaced = String::from(line);
-                    replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
-                    replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
+                    let replaced = String::from(line);
+                    // Disabled until
+                    // https://doc.rust-lang.org/std/string/struct.String.html#method.insert_str is
+                    // in stable
+                    // let mut replaced = String::from(line);
+                    // replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
+                    // replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
 
                     debug!("replaced: {}", replaced);
 
@@ -720,28 +721,28 @@ fn get_filtered_notes(args: &Args) -> ProjectsNotes {
     let projects = get_projects(&datadir, args.value_of("project"));
     let project_notes = get_projects_notes(&datadir, projects);
 
-    let before_notes = match args.value_of("filter_before") {
-        Some(filter) => {
-            debug!("filter notes before timestamp {}", filter);
-            let timestamp = try_multiple_time_parser(filter)
-                .expect("can not parse timestamp from parameter");
-            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
-
-            filter_notes_by_timestamp(project_notes, timestamp, true)
-        }
-        None => project_notes,
-    };
-
-    match args.value_of("filter_after") {
+    let after_notes = match args.value_of("filter_after") {
         Some(filter) => {
             debug!("filter notes after {}", filter);
             let timestamp = try_multiple_time_parser(filter)
                 .expect("can not parse timestamp from after parameter");
             debug!("filter notes after timestamp: {:#?}", timestamp);
 
-            filter_notes_by_timestamp(before_notes, timestamp, false)
+            filter_notes_by_timestamp(project_notes, timestamp, false)
         }
-        None => before_notes,
+        None => project_notes,
+    };
+
+    match args.value_of("filter_before") {
+        Some(filter) => {
+            debug!("filter notes before timestamp {}", filter);
+            let timestamp = try_multiple_time_parser(filter)
+                .expect("can not parse timestamp from parameter");
+            debug!("filter notes before timestamp parsed: {:#?}", timestamp);
+
+            filter_notes_by_timestamp(after_notes, timestamp, false)
+        }
+        None => after_notes,
     }
 }
 
@@ -870,7 +871,7 @@ fn get_notes(project_path: PathBuf) -> Notes {
 
 fn filter_notes_by_timestamp(notes: ProjectsNotes,
                              timestamp: DateTime<UTC>,
-                             before: bool)
+                             after: bool)
                              -> ProjectsNotes {
     trace!("notes before filter: {:#?}", notes);
 
@@ -881,11 +882,11 @@ fn filter_notes_by_timestamp(notes: ProjectsNotes,
                 trace!("filter note: {:#?}", note);
                 trace!("timestamp: {:#?}", timestamp);
 
-                let yield_note = if before {
-                    debug!("filter before");
+                let yield_note = if after {
+                    debug!("filter after");
                     note.time_stamp >= timestamp
                 } else {
-                    debug!("filter after");
+                    debug!("filter before");
                     note.time_stamp <= timestamp
                 };
 
