@@ -19,9 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#![feature(custom_derive)]
-#![feature(insert_str)]
-
 #[macro_use]
 extern crate clap;
 
@@ -321,9 +318,13 @@ fn run_search(args: Args) {
 
                     debug!("find: {:#?}", find);
 
-                    let mut replaced = String::from(line);
-                    replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
-                    replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
+                    let replaced = String::from(line);
+                    // Disabled until
+                    // https://doc.rust-lang.org/std/string/struct.String.html#method.insert_str is
+                    // in stable
+                    //let mut replaced = String::from(line);
+                    //replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
+                    //replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
 
                     debug!("replaced: {}", replaced);
 

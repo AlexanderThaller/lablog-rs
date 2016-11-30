@@ -1,5 +1,4 @@
 // build.rs
-#![feature(custom_derive)]
 #[macro_use]
 extern crate clap;
 
