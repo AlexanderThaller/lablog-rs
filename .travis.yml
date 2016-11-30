@@ -3,19 +3,11 @@ cache: cargo
 
 env:
   global:
-    # This will be part of the release tarball
-    # TODO change the project name
     - PROJECT_NAME=lablog
-    # TODO comment out this variable if you don't want to build .deb packages on all the targets.
     - MAKE_DEB=yes
-    # TODO update these two variables. They are part of the .deb package metadata
     - DEB_MAINTAINER="Alexander Thaller <alexander@thaller.ws>"
     - DEB_DESCRIPTION="lablog orders notes into projects and subprojects without dictating a specific format"
 
-# AFAICT There are a few ways to set up the build jobs. This one is not the DRYest but I feel is the
-# easiest to reason about.
-# TODO Feel free to remove the channels/targets you don't need
-# NOTE Make *sure* you don't remove a reference (&foo) if you are going to dereference it (*foo)
 matrix:
   include:
     # Nightly channel
@@ -31,12 +23,6 @@ matrix:
         apt:
           packages: *musl_packages
   allow_failures:
-    # TODO You might need to allow failures for some target on some channel for some reason. Below
-    # there's one (commented out) example of how to do that. Just change the OS, channel and TARGET
-    # as needed.
-    # - os: linux
-    #   rust: stable
-    #   env: TARGET=x86_64-unknown-linux-gnu
 
 before_install:
   - export PATH="$PATH:$HOME/.cargo/bin"
@@ -52,32 +38,18 @@ before_deploy:
 
 deploy:
   provider: releases
-  # TODO Regenerate this api_key for your project, this one won't work for you. Here's how:
-  # - Go to 'https://github.com/settings/tokens/new' and generate a Token with only the
-  # `public_repo` scope enabled
-  # - Call `travis encrypt $github_token` where $github_token is the token you got in the previous
-  # step and `travis` is the official Travis CI gem (see https://rubygems.org/gems/travis/)
-  # - Enter the "encrypted value" below
   api_key:
-    secure: aLyVgmimaRMCvh2YF4ek0ZseWqKpqCSrvvYdf5rxhZUBnYK+KKlHBsPudtmWbHTh19PPC1C3wSHa8y94IObGl3iRRTICh5e/Oz9xzCiPYlQ0ZGmtM+MfRtUq2xFRc6aaAkrnfW0ur3uxk4a7ZBIOMg3D7kG7Ah4dg5dVf26OmpSBdEijo9bcvOLHXwZIc1bby+MJl8kxzdlwaV7UTrqHQFh+tmMsoO0GQcQpCP3y45f5/8aTkHRmnC1IKCiHKDZpRFDWhdoz02NGWcCnoH43iSwOobe1jacHicmZ7dNHKT/e1tfUIPpbO81fvQ7FHifvBRoO64Wvl5l/IaoDcngv6o11JlWRxIuZnr01oDv+DW8kv9POLYeh2xzMaQkZ8NkPZl82hqr8t0q0OtXZjm/Hysdcvr0T26hbwqs1sOkAAaeRdR0zl/Log53hNqM4HaZZ0CnKGU8dSatC+NOgHEfz68fHArf8DUdKIr3By73tD7T7kJjT1h6F+4E2nYVbHrl20/PV+XO97+9LUNOy6IhbQN0hQjoHVra5oWcZy9WiWgX8IV74yw6vEAQh6XDUWtU9XR7Tl1TjaO/mR8MgOJuQkLt58QWPs50BgUD9XSvDVIurPilZ0bQzvM7js6nTupmd3oaZiYSZCxOTj0LpV34fdEaFX0qSlrSFQw6YYMAawks=
+    secure: Y775wPNDQSvtu1ncGH1lgblr10O96n50e0hlDIxVXKu3LYZuxN/itRzR4r0GemvDUic5DhFHGpVHfYf9cHULzjhZTzK4sPvY2Q16JdFcTrPj0NkHf0W8+TS8FgzRvJPcVOFjX5QCOBASgZwM9iKbxQkv9dYFup0IgOaJQejIYbv7n295121aEmFjZD53npRVjQ0biuBhgjF0yUwV1frl6rTRB+CWtkUDFoB0lcEHjl5BGJuVXfe3FTGvs9ktPIy+bUA/DQuTPUn4C73/FdHtWtZ+buaDlnEShPbcW/jTxmWrFtG/km3TBqd05nQOqF287pQmKHBQyxp+TiQkzh/WjEv1t1n7Ev9H+6puyrfZZQIb4UhE50tj4mvs21rHEQMIvgKK0rKqLMmEAP0G8OzfDYJrmV6oxglbx9gDsMkVeZ9MpuIZY/gpIDs6j0B9qbw9XDjPaEGnlB5DpziaKeE08duzG/SR5LpPMdCQK8Tk66D9hMW42AGyhsOBnp25mFSw4KUbx3L6sAV8FPJ3ZE9nUms+egJ11msp5PxF8SUFGChzadq/0SzXabJQ7cyHLv+XOQv4JLQdWZTtLx7mXYtcuMpz6TntkErKDtB74sKNP5G251flRJqCyeKDqY+pzQL/ukUbou6iuz/qkbgTiALQf59R7JphLzrrbgP2lfcgp0s=
   file_glob: true
   file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
-  # don't delete the artifacts from previous phases
   skip_cleanup: true
-  # deploy when a new tag is pushed
   on:
-    # channel to use to produce the release artifacts
-    # NOTE make sure you only release *once* per target
-    # TODO you may want to pick a different channel
     condition: $TRAVIS_RUST_VERSION = nightly
     tags: true
 
 branches:
   only:
-    # Pushes and PR to the master branch
     - master
-    # IMPORTANT Ruby regex to match tags. Required, or travis won't trigger deploys when a new tag
-    # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
     - /^v\d+\.\d+\.\d+.*$/
 
 notifications:
