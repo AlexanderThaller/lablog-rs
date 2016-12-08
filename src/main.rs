@@ -728,7 +728,7 @@ fn get_filtered_notes(args: &Args) -> ProjectsNotes {
                 .expect("can not parse timestamp from after parameter");
             debug!("filter notes after timestamp: {:#?}", timestamp);
 
-            filter_notes_by_timestamp(project_notes, timestamp, false)
+            filter_notes_by_timestamp(project_notes, timestamp, true)
         }
         None => project_notes,
     };
@@ -956,8 +956,15 @@ fn string_from_editor() -> String {
 }
 
 fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
+    let input = match input {
+        "today" => format!("{}", Local::now().format("%Y-%m-%d")),
+        _ => String::from(input),
+    };
+
+    trace!("time_parser input after natural timestamp: {}", input);
+
     input.parse()
-        .or(UTC.datetime_from_str(input, "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(input.as_str(), "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{}:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{}:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
