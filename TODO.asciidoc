@@ -24,3 +24,4 @@
 parameter
 * timeline print last n entries only
 * Rename/Move projects
+* add month, week, year aggregation for dates command
