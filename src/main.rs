@@ -958,6 +958,10 @@ fn string_from_editor() -> String {
 fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
     let input = match input {
         "today" => format!("{}", Local::now().format("%Y-%m-%d")),
+        "yesterday" => {
+            let yesterday = Local::now() - Duration::days(1);
+            format!("{}", yesterday.format("%Y-%m-%d"))
+        }
         _ => String::from(input),
     };
 
