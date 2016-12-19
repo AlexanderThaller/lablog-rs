@@ -146,6 +146,7 @@ fn run(args: Args) {
                 "dates" => run_dates(command.matches),
                 "note" => run_note(command.matches),
                 "notes" => run_notes(command.matches),
+                "timestamps" => run_timestamps(command.matches),
                 "projects" => run_projects(command.matches),
                 "repo" => run_repo(command.matches),
                 "search" => run_search(command.matches),
@@ -215,6 +216,20 @@ fn run_note(args: Args) {
 fn run_notes(args: Args) {
     let notes = get_filtered_notes(&args);
     println!("{}", format_projects_notes(notes));
+}
+
+fn run_timestamps(args: Args) {
+    let notes = get_filtered_notes(&args);
+
+    for (project, notes) in notes {
+        println!("{}", project);
+
+        for (i, note) in notes.iter().enumerate() {
+            println!("{}\t{}", i, note.time_stamp)
+        }
+
+        println!("");
+    }
 }
 
 fn run_projects(args: Args) {

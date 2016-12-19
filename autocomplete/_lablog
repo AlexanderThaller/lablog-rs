@@ -71,6 +71,27 @@ _arguments -s -S -C \
 "1:: :_lablog_notes_commands" \
 && ret=0
 ;;
+(timestamps)
+_arguments -s -S -C \
+"-B+[print all timestamps before the given timestamp]" \
+"--before+[print all timestamps before the given timestamp]" \
+"-A+[print all timestamps after the given timestamp]" \
+"--after+[print all timestamps after the given timestamp]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_timestamps_commands" \
+&& ret=0
+;;
 (projects)
 _arguments -s -S -C \
 "-h[Prints help information]" \
@@ -368,6 +389,7 @@ _lablog_commands() {
     local commands; commands=(
         "note:add a note to lablog" \
 "notes:list all saved notes" \
+"timestamps:list all timestamps for the project" \
 "projects:list all projects available" \
 "web:start a webserver and serve notes over http" \
 "dates:list dates when notes where taken" \
@@ -477,6 +499,13 @@ _lablog_timeline_commands() {
         "PROJECT:the project for which to list the notes for" \
     )
     _describe -t commands 'lablog timeline commands' commands "$@"
+}
+(( $+functions[_lablog_timestamps_commands] )) ||
+_lablog_timestamps_commands() {
+    local commands; commands=(
+        "PROJECT:the project for which to list the timestamp for" \
+    )
+    _describe -t commands 'lablog timestamps commands' commands "$@"
 }
 (( $+functions[_lablog_web_commands] )) ||
 _lablog_web_commands() {

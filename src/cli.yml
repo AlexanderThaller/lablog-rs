@@ -98,6 +98,26 @@ subcommands:
             long: after
             short: A
             value_name: timestamp
+  - timestamps:
+      about: list all timestamps for the project
+      args:
+        - project:
+            help: the project for which to list the timestamp for
+            takes_value: true
+            value_name: project
+            index: 1
+        - filter_before:
+            help: print all timestamps before the given timestamp
+            takes_value: true
+            long: before
+            short: B
+            value_name: timestamp
+        - filter_after:
+            help: print all timestamps after the given timestamp
+            takes_value: true
+            long: after
+            short: A
+            value_name: timestamp
   - projects:
       about: list all projects available
       args:
