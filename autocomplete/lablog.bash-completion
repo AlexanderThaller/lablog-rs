@@ -433,4 +433,4 @@ _lablog() {
     esac
 }
 
-complete -F _lablog lablog
+complete -F _lablog -o bashdefault -o default lablog

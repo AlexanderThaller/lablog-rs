@@ -19,6 +19,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+#![feature(plugin)]
+#![plugin(rocket_codegen)]
+extern crate rocket;
+
 #[macro_use]
 extern crate clap;
 
@@ -33,16 +37,11 @@ extern crate csv;
 extern crate env_logger;
 extern crate git2;
 extern crate githelper;
-extern crate hyper;
-extern crate iron;
 extern crate libc;
-extern crate logger;
 extern crate loggerv;
 extern crate regex;
-extern crate router;
 extern crate rustc_serialize;
 extern crate tempdir;
-extern crate url;
 extern crate walkdir;
 extern crate xdg;
 
@@ -51,14 +50,8 @@ use clap::App;
 use clap::ArgMatches as Args;
 use git2::{Repository, Error};
 use horrorshow::prelude::*;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use iron::prelude::*;
-use iron::status;
-use logger::Logger;
 use log::LogLevel;
 use regex::Regex;
-use router::Router;
 use rustc_serialize::json;
 use std::cmp::Ordering;
 use std::collections::BTreeMap as DataMap;
@@ -75,7 +68,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use tempdir::TempDir;
-use url::percent_encoding;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
 
@@ -151,7 +143,7 @@ fn run(args: Args) {
                 "repo" => run_repo(command.matches),
                 "search" => run_search(command.matches),
                 "timeline" => run_timeline(command.matches),
-                "web" => run_web(command.matches),
+                "web" => run_webapp(command.matches),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -374,40 +366,133 @@ fn run_timeline(args: Args) {
     println!("{}", get_timeline_for_notes(notes));
 }
 
-fn run_web(args: Args) {
-    let listen_address = args.value_of("listen_address").unwrap();
-    let datadir = get_datadir(&args);
-    let datadir_clone = datadir.clone();
-    let datadir_clone_clone = datadir.clone();
-    let datadir_clone_clone_clone = datadir.clone();
-
-    let mut router = Router::new();
-    router.get("/",
-               move |r: &mut Request| webapp_projects(r, datadir.clone()),
-               "projects");
-    router.get("/timeline",
-               move |r: &mut Request| webapp_timeline(r, datadir_clone.clone()),
-               "timeline");
-    router.get("/notes/:project",
-               move |r: &mut Request| webapp_notes(r, datadir_clone_clone.clone()),
-               "notes");
-    router.get("/show/entries/:project",
-               move |r: &mut Request| webapp_notes(r, datadir_clone_clone_clone.clone()),
-               "notes_legacy");
-
-    let (logger_before, logger_after) = Logger::new(None);
-
-    let mut chain = Chain::new(router);
-
-    // Link logger_before as your first before middleware.
-    chain.link_before(logger_before);
-
-    // Link logger_after as your *last* after middleware.
-    chain.link_after(logger_after);
-
-    info!("Listening on {}", listen_address);
-    Iron::new(chain).http(listen_address).unwrap();
+fn run_webapp(_: Args) {
+    rocket::ignite()
+        .mount("/",
+               routes![webapp_index,
+                       webapp_timeline,
+                       webapp_notes,
+                       webapp_notes_legacy,
+                       webapp_note,
+                       webapp_note_add])
+        .launch();
 }
+
+#[get("/")]
+fn webapp_index() -> String {
+    let datadir = get_datadir2();
+    let projects = get_projects(&datadir, None);
+
+
+    let out = html!{
+        html(lang="en") {
+            head {
+                title { : "Lablog - Projects" }
+            }
+            meta(charset="utf-8"){}
+            body {
+                h1 { : "Projects" }
+                table {
+                    tr {
+                        td {
+                            a(href="/notes/_") {
+                                : "All projects"
+                            }
+                        }
+                    }
+                    tr {
+                        td {
+                            a(href="/timeline/") {
+                                : "Timeline"
+                            }
+                        }
+                    }
+                }
+                hr{}
+                table {
+                    @ for project in projects {
+                        tr {
+                            td {
+                                a(href=format_args!("/notes/{}", project)) {
+                                    : project
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }}
+        .into_string()
+        .unwrap();
+
+    out
+}
+
+#[get("/timeline")]
+fn webapp_timeline() -> String {
+    let datadir = get_datadir2();
+    format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"))
+}
+
+#[get("/notes/<project>")]
+fn webapp_notes(project: &str) -> String {
+    let datadir = get_datadir2();
+    match project {
+        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
+        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
+    }
+}
+
+#[get("/show/entries/<project>")]
+fn webapp_notes_legacy(project: &str) -> String {
+    let datadir = get_datadir2();
+    match project {
+        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
+        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
+    }
+}
+
+#[get("/note")]
+fn webapp_note() -> String {
+    let datadir = get_datadir2();
+    let projects = get_projects(&datadir, None);
+
+    let out = html!{
+    html(lang="en") {
+        head {
+            title { : "Lablog - Add Note" }
+        }
+        meta(charset="utf-8"){}
+        body {
+            h1 { : "Note" }
+
+            form(action="note_add", method="post") {
+                input(name="project", list="projects", style="width: 100%"){}
+
+                datalist(id="projects"){
+                    @ for project in projects {
+                        option(value=format_args!("{}", project)) {}
+                    }
+                }
+
+                br{}
+
+                textarea(name="note", style="width: 100%; height: 500px") {}
+
+                br{}
+
+                input(type="submit", style="width: 150px; height: 30px")
+            }
+        }
+    }}
+        .into_string()
+        .unwrap();
+
+    out
+}
+
+#[post("/note_add")]
+fn webapp_note_add() {}
 
 fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
     let signature = try!(repo.signature());
@@ -468,85 +553,6 @@ fn git_commit_note(datadir: &PathBuf, project: Project, note: &Note) {
                                  project.expect("can not write commit message for the all projects \
                                               project"));
     git_commit(&repo, commit_message.as_str()).unwrap();
-}
-
-fn webapp_projects(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let projects = get_projects(&datadir, None);
-
-    let out = html!{
-        html(lang="en") {
-            head {
-                title { : "Lablog - Projects" }
-            }
-            meta(charset="utf-8"){}
-            body {
-                h1 { : "Projects" }
-                table {
-                    tr {
-                            td {
-                                a(href="/notes/_") {
-                                    : "All projects"
-                                }
-                            }
-                    }
-                    tr {
-                        td {
-                            a(href="/timeline/") {
-                                : "Timeline"
-                            }
-                        }
-                    }
-                }
-                hr{}
-                table {
-                    @ for project in projects {
-                        tr {
-                            td {
-                                a(href=format_args!("/notes/{}", project)) {
-                                    : project
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-    }}
-        .into_string()
-        .unwrap();
-
-    let mut resp = Response::with((status::Ok, out));
-    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
-    Ok(resp)
-}
-
-fn webapp_timeline(_: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let out = format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"));
-
-    let mut resp = Response::with((status::Ok, out));
-    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
-    Ok(resp)
-}
-
-fn webapp_notes(req: &mut Request, datadir: std::path::PathBuf) -> IronResult<Response> {
-    let project_req = req.extensions.get::<Router>().unwrap().find("project").unwrap_or("_");
-    let project =
-        percent_encoding::percent_decode(project_req.as_bytes()).decode_utf8_lossy().into_owned();
-
-    debug!("project: {}", project);
-
-    let out = match project.as_str() {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
-        _ => {
-            format_or_cached_modified(format_notes,
-                                      Some(project.as_str()),
-                                      &datadir,
-                                      Some(project.as_str()))
-        }
-    };
-
-    let mut resp = Response::with((status::Ok, out));
-    resp.headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])));
-    Ok(resp)
 }
 
 fn cache_find_file(project: Project) -> Option<PathBuf> {
@@ -816,6 +822,11 @@ fn get_datadir(args: &Args) -> PathBuf {
     };
     debug!("datadir: {:?}", datadir);
     datadir
+}
+
+fn get_datadir2() -> PathBuf {
+    let xdg = BaseDirectories::new().unwrap();
+    xdg.create_data_directory("lablog").unwrap()
 }
 
 fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNotes {

@@ -7,21 +7,20 @@ build = "build.rs"
 [dependencies]
 chrono = { version = "0.2", features = ["rustc-serialize"] }
 csv = "0.14"
-env_logger = "*"
 git2 = "0.5"
 horrorshow = "0.5.8"
-hyper = "*"
-iron = "0.4.*"
 log = "*"
 loggerv = "*"
+env_logger = "*"
 regex = "0.1"
-router = "*"
 rustc-serialize = "0.3"
 walkdir = "0.1"
 xdg = "^2.0"
 tempdir = "0.3"
 libc = "*"
 githelper = "*"
+rocket = "0.1.2"
+rocket_codegen = "0.1.2"
 
 [dependencies.clap]
 version = "*"
@@ -30,9 +29,3 @@ features = ["yaml"]
 [build-dependencies.clap]
 version = "*"
 features = ["yaml"]
-
-[dependencies.logger]
-git = "https://github.com/iron/logger.git"
-
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
