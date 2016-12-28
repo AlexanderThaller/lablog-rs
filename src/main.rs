@@ -23,6 +23,7 @@
 #![feature(proc_macro)]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
+
 extern crate rocket;
 extern crate rocket_contrib;
 
@@ -52,6 +53,9 @@ use clap::App;
 use clap::ArgMatches as Args;
 use log::LogLevel;
 use regex::Regex;
+use rocket_contrib::Template as RocketTemplate;
+use rocket::request::Form;
+use rocket::response::Redirect;
 use rustc_serialize::json;
 use std::cmp::Ordering;
 use std::collections::BTreeMap as DataMap;
@@ -70,9 +74,6 @@ use std::process::Command;
 use tempdir::TempDir;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
-use rocket::request::Form;
-use rocket::response::Redirect;
-use rocket_contrib::Template as RocketTemplate;
 
 const PROJECT_SEPPERATOR: &'static str = ".";
 
