@@ -78,6 +78,12 @@ subcommands:
             short: e
               - text
               - file
+        - timestamp:
+            help: 'set the timestamp of the note if empty the current time will taken (format: 2014-11-28T12:00:09Z)'
+            takes_value: true
+            value_name: datetime
+            long: timestamp
+            short: t
   - notes:
       about: list all saved notes
       args:

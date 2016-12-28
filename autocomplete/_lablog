@@ -33,6 +33,8 @@ _lablog() {
 _arguments -s -S -C \
 "(-e --editor)-f+[the file from which to read the note from]" \
 "(-e --editor)--file+[the file from which to read the note from]" \
+"-t+[set the timestamp of the note if empty the current time will taken (format: 2014-11-28T12:00:09Z)]" \
+"--timestamp+[set the timestamp of the note if empty the current time will taken (format: 2014-11-28T12:00:09Z)]" \
 "-e[open the default editor for writing the note]" \
 "--editor[open the default editor for writing the note]" \
 "-h[Prints help information]" \

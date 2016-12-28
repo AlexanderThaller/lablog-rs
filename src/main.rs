@@ -196,8 +196,13 @@ fn run_note(args: Args) {
     debug!("project: {:#?}", project);
     debug!("text: {}", text);
 
+    let timestamp: DateTime<UTC> = match args.value_of("timestamp") {
+        None => UTC::now().into(),
+        Some(ts) => ts.parse().unwrap(),
+    };
+
     let note = Note {
-        time_stamp: UTC::now().into(),
+        time_stamp: timestamp,
         value: text.into(),
     };
 

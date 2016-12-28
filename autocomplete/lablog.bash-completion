@@ -140,7 +140,7 @@ _lablog() {
             return 0
             ;;
         lablog_note)
-            opts=" -f -e -h -V  --file --editor --help --version  <project> <text> "
+            opts=" -f -e -t -h -V  --file --editor --timestamp --help --version  <project> <text> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -153,6 +153,14 @@ _lablog() {
                     ;;
                     -f)
                     COMPREPLY=("<path>")
+                    return 0
+                    ;;
+                --timestamp)
+                    COMPREPLY=("<datetime>")
+                    return 0
+                    ;;
+                    -t)
+                    COMPREPLY=("<datetime>")
                     return 0
                     ;;
                 *)
