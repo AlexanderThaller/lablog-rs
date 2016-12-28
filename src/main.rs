@@ -459,7 +459,7 @@ fn webapp_note() -> String {
 
             h1 { : "Note" }
 
-            form(action="note_add", method="post") {
+            form(action="/note_add", method="post") {
                 input(name="project", list="projects", style="width: 100%"){}
 
                 datalist(id="projects"){

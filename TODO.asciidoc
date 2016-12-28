@@ -26,3 +26,4 @@ parameter
 * Rename/Move projects
 * add month, week, year aggregation for dates command
 * move notes between projects
+* preview button for note adding webinterface
