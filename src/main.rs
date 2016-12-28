@@ -20,18 +20,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #![feature(custom_derive)]
+#![feature(proc_macro)]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
 extern crate rocket;
+extern crate rocket_contrib;
+
+#[macro_use]
+extern crate serde_derive;
 
 #[macro_use]
 extern crate clap;
 
 #[macro_use]
 extern crate log;
-
-#[macro_use]
-extern crate horrorshow;
 
 extern crate chrono;
 extern crate csv;
@@ -48,7 +50,6 @@ extern crate xdg;
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
-use horrorshow::prelude::*;
 use log::LogLevel;
 use regex::Regex;
 use rustc_serialize::json;
@@ -71,6 +72,7 @@ use walkdir::WalkDir;
 use xdg::BaseDirectories;
 use rocket::request::Form;
 use rocket::response::Redirect;
+use rocket_contrib::Template as RocketTemplate;
 
 const PROJECT_SEPPERATOR: &'static str = ".";
 
@@ -364,63 +366,18 @@ fn run_webapp(_: Args) {
         .launch();
 }
 
+#[derive(Serialize)]
+struct IndexContext {
+    projects: Projects,
+}
+
 #[get("/")]
-fn webapp_index() -> String {
+fn webapp_index() -> RocketTemplate {
     let datadir = get_datadir2();
     let projects = get_projects(&datadir, None);
+    let context = IndexContext { projects: projects };
 
-
-    let out = html!{
-        html(lang="en") {
-            head {
-                title { : "Lablog - Projects" }
-            }
-            meta(charset="utf-8"){}
-            body {
-                h1 { : "Projects" }
-                table {
-                    tr {
-                        td {
-                            a(href="/notes/_") {
-                                : "All projects"
-                            }
-                        }
-                    }
-                    tr {
-                        td {
-                            a(href="/timeline/") {
-                                : "Timeline"
-                            }
-                        }
-                    }
-                    tr {
-                        td {
-                            a(href="/note/") {
-                                : "Add Note"
-                            }
-                        }
-                    }
-                }
-
-                hr{}
-
-                table {
-                    @ for project in projects {
-                        tr {
-                            td {
-                                a(href=format_args!("/notes/{}", project)) {
-                                    : project
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }}
-        .into_string()
-        .unwrap();
-
-    out
+    RocketTemplate::render("index", &context)
 }
 
 #[get("/timeline")]
@@ -448,45 +405,12 @@ fn webapp_notes_legacy(project: &str) -> String {
 }
 
 #[get("/note")]
-fn webapp_note() -> String {
+fn webapp_note() -> RocketTemplate {
     let datadir = get_datadir2();
     let projects = get_projects(&datadir, None);
+    let context = IndexContext { projects: projects };
 
-    let out = html!{
-    html(lang="en") {
-        head {
-            title { : "Lablog - Add Note" }
-        }
-        meta(charset="utf-8"){}
-        body {
-            a(href="/"){ : "Back" }
-            hr{}
-
-            h1 { : "Note" }
-
-            form(action="/note_add", method="post") {
-                input(name="project", list="projects", style="width: 100%"){}
-
-                datalist(id="projects"){
-                    @ for project in projects {
-                        option(value=format_args!("{}", project)) {}
-                    }
-                }
-
-                br{}
-
-                textarea(name="note", style="width: 100%; height: 500px") {}
-
-                br{}
-
-                input(type="submit", style="width: 150px; height: 30px")
-            }
-        }
-    }}
-        .into_string()
-        .unwrap();
-
-    out
+    RocketTemplate::render("note", &context)
 }
 
 #[derive(FromForm,Debug)]

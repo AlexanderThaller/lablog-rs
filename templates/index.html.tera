@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Lablog</title>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <h1>Overview</h1>
+    <a href="/notes/_">All projects</a><br/>
+    <a href="/timeline/">Timeline</a><br/>
+    <a href="/note/">Add Note</a><br/>
+
+    <hr>
+
+    <h1>Projects</h1>
+    {% for project in projects %}
+    <a href="/notes/{{ project }}">{{ project }}</a><br/>
+    {% endfor %}
+  </body>
+</html>
