@@ -5,22 +5,21 @@ authors = ["Alexander Thaller <alexander@thaller.ws>"]
 build = "build.rs"
 
 [dependencies]
-chrono = { version = "0.2", features = ["rustc-serialize"] }
-csv = "0.14"
-git2 = "0.5"
-horrorshow = "0.5.8"
+chrono = { version = "*", features = ["rustc-serialize"] }
+csv = "*"
+horrorshow = "*"
 log = "*"
 loggerv = "*"
 env_logger = "*"
-regex = "0.1"
-rustc-serialize = "0.3"
-walkdir = "0.1"
-xdg = "^2.0"
-tempdir = "0.3"
+regex = "*"
+rustc-serialize = "*"
+walkdir = "*"
+xdg = "*"
+tempdir = "*"
 libc = "*"
 githelper = "*"
-rocket = "0.1.2"
-rocket_codegen = "0.1.2"
+rocket = "*"
+rocket_codegen = "*"
 
 [dependencies.clap]
 version = "*"

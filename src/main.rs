@@ -36,7 +36,6 @@ extern crate horrorshow;
 extern crate chrono;
 extern crate csv;
 extern crate env_logger;
-extern crate git2;
 extern crate githelper;
 extern crate libc;
 extern crate loggerv;
@@ -49,7 +48,6 @@ extern crate xdg;
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
-use git2::{Repository, Error};
 use horrorshow::prelude::*;
 use log::LogLevel;
 use regex::Regex;
@@ -256,55 +254,35 @@ fn run_repo(args: Args) {
 
 fn run_repo_pull(args: &Args) {
     let datadir = get_datadir(args);
-    let output = Command::new("git")
-        .arg("pull")
-        .current_dir(datadir)
-        .output()
-        .expect("failed to run git pull");
-
-    println!("status: {}", output.status);
-    println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-    println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+    githelper::pull(datadir.as_path()).expect("can not pull from repo");
 }
 
 fn run_repo_push(args: &Args) {
     let datadir = get_datadir(args);
-    let output = Command::new("git")
-        .arg("push")
-        .current_dir(datadir)
-        .output()
-        .expect("failed to run git push");
-
-    println!("status: {}", output.status);
-    println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-    println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+    githelper::push(datadir.as_path()).expect("can not push to repo");
 }
 
 fn run_repo_sync(args: &Args) {
-    run_repo_pull(args);
-    run_repo_push(args);
+    let datadir = get_datadir(args);
+    githelper::sync(datadir.as_path()).expect("can not sync repo");
 }
 
 fn run_repo_init(args: &Args) {
     let datadir = get_datadir(args);
     match args.value_of("remote") {
         Some(remote) => {
-            Repository::clone(remote, datadir).unwrap();
+            match githelper::clone(datadir.as_path(), remote) {
+                Err(err) => error!("can not clone git repository from remote: {}", err),
+                Ok(info) => info!("repo was cloned: {}", info),
+            }
         }
         None => {
-
-            match Repository::open(&datadir) {
-                Ok(_) => error!("repository is already initialized"),
+            match githelper::status(datadir.as_path()) {
+                Ok(status) => error!("repository is already initialized: {}", status),
                 Err(_) => {
-                    let repo = match Repository::init(&datadir) {
-                        Ok(repo) => repo,
-                        Err(e) => panic!("failed to init repository: {}", e),
-                    };
-
-                    let mut index = repo.index().unwrap();
-                    index.add_all(vec!["*"].iter(), git2::ADD_DEFAULT, None).unwrap();
-                    index.write().unwrap();
-                    git_commit_init(&repo, "Initial commit").unwrap();
+                    githelper::init(datadir.as_path()).expect("can not initialize git repo");
+                    githelper::commit(datadir.as_path(), "initial commit")
+                        .expect("can not add initial commit to git repo");
                 }
             };
         }
@@ -410,8 +388,17 @@ fn webapp_index() -> String {
                             }
                         }
                     }
+                    tr {
+                        td {
+                            a(href="/note/") {
+                                : "Add Note"
+                            }
+                        }
+                    }
                 }
+
                 hr{}
+
                 table {
                     @ for project in projects {
                         tr {
@@ -467,6 +454,9 @@ fn webapp_note() -> String {
         }
         meta(charset="utf-8"){}
         body {
+            a(href="/"){ : "Back" }
+            hr{}
+
             h1 { : "Note" }
 
             form(action="note_add", method="post") {
@@ -536,65 +526,17 @@ fn test_asciidoc_timestamp() {
 
 }
 
-fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
-    let signature = try!(repo.signature());
-
-    let mut index = try!(repo.index());
-    let tree_id = try!(index.write_tree());
-    let tree = try!(repo.find_tree(tree_id));
-
-    let head = try!(repo.head());
-    let head_oid = head.target().unwrap();
-    let head_commit = try!(repo.find_commit(head_oid));
-
-    repo.commit(Some("HEAD"),
-                &signature,
-                &signature,
-                msg,
-                &tree,
-                &[&head_commit])
-}
-
-fn git_commit_init(repo: &Repository, message: &str) -> Result<(), Error> {
-    // First use the config to initialize a commit signature for the user.
-    let sig = try!(repo.signature());
-
-    // Now let's create an empty tree for this commit
-    let tree_id = {
-        let mut index = try!(repo.index());
-
-        // Outside of this example, you could call index.add_path()
-        // here to put actual files into the index. For our purposes, we'll
-        // leave it empty for now.
-
-        try!(index.write_tree())
-    };
-
-    let tree = try!(repo.find_tree(tree_id));
-
-    // Ready to create the initial commit.
-    //
-    // Normally creating a commit would involve looking up the current HEAD
-    // commit and making that be the parent of the initial commit, but here this
-    // is the first commit so there will be no parent.
-    try!(repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &[]));
-
-    Ok(())
-}
-
 fn git_commit_note(datadir: &PathBuf, project: Project, note: &Note) {
     let project_path = normalize_project_path(project, "csv");
 
-    let repo = Repository::open(&datadir).unwrap();
-    let mut index = repo.index().unwrap();
-    index.add_path(Path::new(project_path.as_str())).unwrap();
-    index.write().unwrap();
+    githelper::add(&datadir, Path::new(project_path.as_str()))
+        .expect("can not add project file changes to git");
 
     let commit_message = format!("{} - {} - added",
                                  note.time_stamp,
                                  project.expect("can not write commit message for the all projects \
                                               project"));
-    git_commit(&repo, commit_message.as_str()).unwrap();
+    githelper::commit(&datadir, commit_message.as_str()).expect("can not commit note to repo");
 }
 
 fn cache_find_file(project: Project) -> Option<PathBuf> {
