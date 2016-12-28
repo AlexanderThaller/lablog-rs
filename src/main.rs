@@ -509,12 +509,13 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
     let note: Note = noteform.get().into();
     let project = noteform.get().project.as_str();
 
-    info!("new note for project {}: {:#?}", project, note);
 
     let datadir = get_datadir2();
     if write_note(&datadir, Some(project), &note).is_some() {
         git_commit_note(&datadir, Some(project), &note)
     }
+
+    githelper::sync(datadir.as_path()).expect("can not sync repo");
 
     let timestamp = asciidoc_timestamp(format!("{}", note.time_stamp).as_str());
     Redirect::to(format!("/notes/{}#{}", project, timestamp).as_str())
