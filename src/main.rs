@@ -19,6 +19,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+#![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
 extern crate rocket;
@@ -70,6 +71,8 @@ use std::process::Command;
 use tempdir::TempDir;
 use walkdir::WalkDir;
 use xdg::BaseDirectories;
+use rocket::request::Form;
+use rocket::response::Redirect;
 
 const PROJECT_SEPPERATOR: &'static str = ".";
 
@@ -491,8 +494,47 @@ fn webapp_note() -> String {
     out
 }
 
-#[post("/note_add")]
-fn webapp_note_add() {}
+#[derive(FromForm,Debug)]
+struct NotesForm {
+    project: String,
+    note: String,
+}
+
+impl<'a> Into<Note> for &'a NotesForm {
+    fn into(self) -> Note {
+        Note {
+            time_stamp: UTC::now().into(),
+            value: self.note.clone(),
+        }
+    }
+}
+
+#[post("/note_add", data="<noteform>")]
+fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
+    let note: Note = noteform.get().into();
+    let project = noteform.get().project.as_str();
+
+    info!("new note for project {}: {:#?}", project, note);
+
+    let datadir = get_datadir2();
+    if write_note(&datadir, Some(project), &note).is_some() {
+        git_commit_note(&datadir, Some(project), &note)
+    }
+
+    let timestamp = asciidoc_timestamp(format!("{}", note.time_stamp).as_str());
+    Redirect::to(format!("/notes/{}#{}", project, timestamp).as_str())
+}
+
+fn asciidoc_timestamp(input: &str) -> String {
+    String::from(input).to_lowercase().replace(' ', "-").replace(':', "-").replace('.', "-")
+}
+
+#[test]
+fn test_asciidoc_timestamp() {
+    assert_eq!(asciidoc_timestamp("2016-10-27 15:14:07.704374171 UTC"),
+               "2016-10-27-15-14-07-704374171-utc")
+
+}
 
 fn git_commit(repo: &Repository, msg: &str) -> Result<git2::Oid, git2::Error> {
     let signature = try!(repo.signature());
