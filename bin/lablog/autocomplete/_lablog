@@ -111,24 +111,6 @@ _arguments -s -S -C \
 "1:: :_lablog_projects_commands" \
 && ret=0
 ;;
-(web)
-_arguments -s -S -C \
-"-L+[the address and port to listen on]" \
-"--listen+[the address and port to listen on]" \
-"-h[Prints help information]" \
-"--help[Prints help information]" \
-"-V[Prints version information]" \
-"--version[Prints version information]" \
-"-h[Prints help information]" \
-"--help[Prints help information]" \
-"-V[Prints version information]" \
-"--version[Prints version information]" \
-"-h[Prints help information]" \
-"--help[Prints help information]" \
-"-V[Prints version information]" \
-"--version[Prints version information]" \
-&& ret=0
-;;
 (dates)
 _arguments -s -S -C \
 "-B+[print all notes before the given timestamp]" \
@@ -393,7 +375,6 @@ _lablog_commands() {
 "notes:list all saved notes" \
 "timestamps:list all timestamps for the project" \
 "projects:list all projects available" \
-"web:start a webserver and serve notes over http" \
 "dates:list dates when notes where taken" \
 "timeline:list notes sorted by time" \
 "repo:interact with the notes repository" \
@@ -508,13 +489,6 @@ _lablog_timestamps_commands() {
         "PROJECT:the project for which to list the timestamp for" \
     )
     _describe -t commands 'lablog timestamps commands' commands "$@"
-}
-(( $+functions[_lablog_web_commands] )) ||
-_lablog_web_commands() {
-    local commands; commands=(
-        
-    )
-    _describe -t commands 'lablog web commands' commands "$@"
 }
 
 _lablog "$@"

@@ -28,7 +28,7 @@ const PROJECT_SEPPERATOR: &'static str = ".";
 pub type Project<'a> = Option<&'a str>;
 pub type Projects = DataSet<String>;
 
-type ProjectsNotes = DataMap<String, Notes>;
+pub type ProjectsNotes = DataMap<String, Notes>;
 type Notes = DataSet<Note>;
 
 #[derive(Debug,RustcEncodable,RustcDecodable,Eq)]
@@ -155,7 +155,7 @@ pub fn get_timeline(project: Option<&str>, datadir: &PathBuf) -> String {
     get_timeline_for_notes(project_notes)
 }
 
-fn get_timeline_for_notes(notes: ProjectsNotes) -> String {
+pub fn get_timeline_for_notes(notes: ProjectsNotes) -> String {
     let mut timeline = DataMap::default();
     for (project, notes) in notes {
         for note in notes {
@@ -187,7 +187,7 @@ fn get_timeline_for_notes(notes: ProjectsNotes) -> String {
     out
 }
 
-fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNotes {
+pub fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNotes {
     let mut map = DataMap::default();
 
     for project in projects {
@@ -223,7 +223,7 @@ pub fn format_notes(project: Option<&str>, datadir: &PathBuf) -> String {
     format_projects_notes(notes)
 }
 
-fn format_projects_notes(notes: ProjectsNotes) -> String {
+pub fn format_projects_notes(notes: ProjectsNotes) -> String {
     let mut out = String::new();
 
     let header = include_str!("notes.header.asciidoc");
@@ -241,4 +241,65 @@ fn format_projects_notes(notes: ProjectsNotes) -> String {
     }
 
     out
+}
+
+pub fn filter_notes_by_timestamp(notes: ProjectsNotes,
+                                 timestamp: DateTime<UTC>,
+                                 after: bool)
+                                 -> ProjectsNotes {
+    trace!("notes before filter: {:#?}", notes);
+
+    let mut filtered_notes = DataMap::default();
+    for (project, notes) in notes {
+        let filternotes: DataSet<_> = notes.into_iter()
+            .filter(|note| {
+                trace!("filter note: {:#?}", note);
+                trace!("timestamp: {:#?}", timestamp);
+
+                let yield_note = if after {
+                    debug!("filter after");
+                    note.time_stamp >= timestamp
+                } else {
+                    debug!("filter before");
+                    note.time_stamp <= timestamp
+                };
+
+                trace!("yield: {}", yield_note);
+
+                yield_note
+            })
+            .collect();
+
+        if !filternotes.is_empty() {
+            debug!("filternotes is not empty");
+            filtered_notes.insert(project, filternotes);
+        }
+    }
+
+    trace!("notes after filter: {:#?}", filtered_notes);
+
+    filtered_notes
+}
+
+pub fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
+    let input = match input {
+        "today" => format!("{}", Local::now().format("%Y-%m-%d")),
+        "yesterday" => {
+            let yesterday = Local::now() - Duration::days(1);
+            format!("{}", yesterday.format("%Y-%m-%d"))
+        }
+        _ => String::from(input),
+    };
+
+    trace!("time_parser input after natural timestamp: {}", input);
+
+    input.parse()
+        .or(UTC.datetime_from_str(input.as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}-01 00:00:00", input).as_str(),
+                                  "%Y-%m-%d %H:%M:%S"))
+        .or(UTC.datetime_from_str(format!("{}-01-01 00:00:00", input).as_str(),
+                                  "%Y-%m-%d %H:%M:%S"))
 }

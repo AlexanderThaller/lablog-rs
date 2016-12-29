@@ -19,16 +19,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#![feature(custom_derive)]
-#![feature(proc_macro)]
-#![feature(plugin)]
-#![plugin(rocket_codegen)]
-
-extern crate rocket;
-extern crate rocket_contrib;
-
-#[macro_use]
-extern crate serde_derive;
+extern crate chrono;
+extern crate githelper;
+extern crate lablog_lib;
+extern crate loggerv;
+extern crate regex;
+extern crate tempdir;
+extern crate xdg;
 
 #[macro_use]
 extern crate clap;
@@ -36,84 +33,30 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
-extern crate chrono;
-extern crate csv;
-extern crate env_logger;
-extern crate githelper;
-extern crate libc;
-extern crate loggerv;
-extern crate regex;
-extern crate rustc_serialize;
-extern crate tempdir;
-extern crate walkdir;
-extern crate xdg;
-
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
+use lablog_lib::file_to_string;
+use lablog_lib::filter_notes_by_timestamp;
+use lablog_lib::format_projects_notes;
+use lablog_lib::get_projects;
+use lablog_lib::get_projects_notes;
+use lablog_lib::get_timeline_for_notes;
+use lablog_lib::git_commit_note;
+use lablog_lib::Note;
+use lablog_lib::ProjectsNotes;
+use lablog_lib::try_multiple_time_parser;
+use lablog_lib::write_note;
 use log::LogLevel;
 use regex::Regex;
-use rocket_contrib::Template as RocketTemplate;
-use rocket::request::Form;
-use rocket::response::Redirect;
-use rustc_serialize::json;
-use std::cmp::Ordering;
 use std::collections::BTreeMap as DataMap;
 use std::collections::BTreeSet as DataSet;
 use std::env;
-use std::fs;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::Read;
-use std::io::Result as IOResult;
-use std::io::Write;
-use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use tempdir::TempDir;
-use walkdir::WalkDir;
 use xdg::BaseDirectories;
-
-const PROJECT_SEPPERATOR: &'static str = ".";
-
-#[derive(Debug,RustcEncodable,RustcDecodable,Eq)]
-struct Note {
-    time_stamp: DateTime<UTC>,
-    value: String,
-}
-
-impl Ord for Note {
-    fn cmp(&self, other: &Note) -> Ordering {
-        self.time_stamp.cmp(&other.time_stamp)
-    }
-}
-
-impl PartialOrd for Note {
-    fn partial_cmp(&self, other: &Note) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq for Note {
-    fn eq(&self, other: &Note) -> bool {
-        self.time_stamp == other.time_stamp
-    }
-}
-
-type Notes = DataSet<Note>;
-
-type Project<'a> = Option<&'a str>;
-type Projects = DataSet<String>;
-
-type ProjectsNotes = DataMap<String, Notes>;
-
-#[derive(Debug,RustcEncodable,RustcDecodable)]
-struct HTMLCache {
-    gitcommit: String,
-    html: String,
-    modified: NaiveDateTime,
-}
 
 #[derive(Debug)]
 struct Options {
@@ -155,7 +98,6 @@ fn run(args: Args, options: Options) {
                 "repo" => run_repo(command.matches, options),
                 "search" => run_search(command.matches, options),
                 "timeline" => run_timeline(command.matches, options),
-                "web" => run_webapp(),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -339,9 +281,6 @@ fn run_search(args: Args, options: Options) {
 
     let mut out = String::new();
 
-    let header = include_str!("notes.header.asciidoc");
-    out.push_str(header);
-
     for (project, notes) in searched {
         out.push_str(format!("== {}\n", project).as_str());
         for note in notes {
@@ -360,301 +299,43 @@ fn run_timeline(args: Args, options: Options) {
     println!("{}", get_timeline_for_notes(notes));
 }
 
-fn run_webapp() {
-    rocket::ignite()
-        .mount("/",
-               routes![webapp_index,
-                       webapp_timeline,
-                       webapp_notes,
-                       webapp_notes_legacy,
-                       webapp_note,
-                       webapp_note_add])
-        .launch();
-}
-
-#[derive(Serialize)]
-struct IndexContext {
-    projects: Projects,
-}
-
-#[get("/")]
-fn webapp_index() -> RocketTemplate {
-    let datadir = get_datadir2();
-    let projects = get_projects(&datadir, None);
-    let context = IndexContext { projects: projects };
-
-    RocketTemplate::render("index", &context)
-}
-
-#[get("/timeline")]
-fn webapp_timeline() -> String {
-    let datadir = get_datadir2();
-    format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"))
-}
-
-#[get("/notes/<project>")]
-fn webapp_notes(project: &str) -> String {
-    let datadir = get_datadir2();
-    match project {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
-        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
-    }
-}
-
-#[get("/show/entries/<project>")]
-fn webapp_notes_legacy(project: &str) -> String {
-    let datadir = get_datadir2();
-    match project {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
-        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
-    }
-}
-
-#[get("/note")]
-fn webapp_note() -> RocketTemplate {
-    let datadir = get_datadir2();
-    let projects = get_projects(&datadir, None);
-    let context = IndexContext { projects: projects };
-
-    RocketTemplate::render("note", &context)
-}
-
-#[derive(FromForm,Debug)]
-struct NotesForm {
-    project: String,
-    note: String,
-}
-
-impl<'a> Into<Note> for &'a NotesForm {
-    fn into(self) -> Note {
-        Note {
-            time_stamp: UTC::now().into(),
-            value: self.note.clone(),
-        }
-    }
-}
-
-#[post("/note_add", data="<noteform>")]
-fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
-    let note: Note = noteform.get().into();
-    let project = noteform.get().project.as_str();
-
-
-    let datadir = get_datadir2();
-    if write_note(&datadir, Some(project), &note).is_some() {
-        git_commit_note(&datadir, Some(project), &note)
-    }
-
-    githelper::sync(datadir.as_path()).expect("can not sync with repo");
-
-    let timestamp = asciidoc_timestamp(format!("{}", note.time_stamp).as_str());
-    Redirect::to(format!("/notes/{}#{}", project, timestamp).as_str())
-}
-
-fn asciidoc_timestamp(input: &str) -> String {
-    String::from(input).to_lowercase().replace(' ', "-").replace(':', "-").replace('.', "-")
-}
-
-#[test]
-fn test_asciidoc_timestamp() {
-    assert_eq!(asciidoc_timestamp("2016-10-27 15:14:07.704374171 UTC"),
-               "2016-10-27-15-14-07-704374171-utc")
-
-}
-
-fn git_commit_note(datadir: &PathBuf, project: Project, note: &Note) {
-    let project_path = normalize_project_path(project, "csv");
-
-    githelper::add(&datadir, Path::new(project_path.as_str()))
-        .expect("can not add project file changes to git");
-
-    let commit_message = format!("{} - {} - added",
-                                 note.time_stamp,
-                                 project.expect("can not write commit message for the all projects \
-                                              project"));
-    githelper::commit(&datadir, commit_message.as_str()).expect("can not commit note to repo");
-}
-
-fn cache_find_file(project: Project) -> Option<PathBuf> {
-    let xdg = BaseDirectories::new().unwrap();
-    let mut cache_path = PathBuf::from("lablog");
-    cache_path.push(normalize_project_path(project, "cache"));
-
-    let cachefile = xdg.find_cache_file(&cache_path);
-    debug!("found cachefile: {:#?} from project {:#?}",
-           cachefile,
-           project);
-
-    cachefile
-}
-
-fn cache_place_file(project: Project) -> PathBuf {
-    let xdg = BaseDirectories::new().unwrap();
-    let mut cache_path = PathBuf::from("lablog");
-    cache_path.push(normalize_project_path(project, "cache"));
-    let cachefile = xdg.place_cache_file(&cache_path).unwrap();
-
-    debug!("put cachefile: {:#?} from project {:#?}",
-           cachefile,
-           project);
-
-    cachefile
-}
-
-fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
-                             project: Project,
-                             datadir: &PathBuf,
-                             cachefile: Project)
-                             -> String {
-    match cache_find_file(cachefile) {
-        None => {
-            debug!("no cachefile will generate new file");
-            get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
-        }
-        Some(path) => {
-            let data = file_to_string(&path).unwrap();
-            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
-
-            let mut project_path = datadir.clone();
-            project_path.push(normalize_project_path(project, "csv"));
-            trace!("project_path: {:#?}", project_path);
-
-            let metadata = File::open(&project_path).unwrap().metadata().unwrap();
-            let mtime = metadata.mtime();
-            let mtime_nsec = metadata.mtime_nsec() as u32;
-
-            trace!("mtime: {}", mtime);
-            trace!("mtime_nsec: {}", mtime_nsec);
-
-            let file_modified = NaiveDateTime::from_timestamp(mtime, mtime_nsec);
-
-            trace!("file modified: {:#?}", file_modified);
-            trace!("cache modified: {:#?}", decoded.modified);
-
-            if file_modified <= decoded.modified {
-                debug!("serve cachefile");
-                decoded.html
-            } else {
-                debug!("file_modified is newer than decoded.modified");
-                get_projects_asiidoc_write_cache(format, project, datadir, &path)
-            }
-        }
-    }
-}
-
-fn format_or_cached_git(format: fn(Project, &PathBuf) -> String,
-                        project: Project,
-                        datadir: &PathBuf,
-                        cachefile: Project)
-                        -> String {
-    match cache_find_file(cachefile) {
-        None => {
-            debug!("no cachefile will generate new file");
-            get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
-        }
-        Some(path) => {
-            let data = file_to_string(&path).unwrap();
-            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
-
-            let gitcommit = githelper::get_current_commitid_for_repo(datadir).unwrap();
-            if gitcommit == decoded.gitcommit {
-                debug!("serve cachefile");
-                decoded.html
-            } else {
-                debug!("commits different will generate new file");
-                get_projects_asiidoc_write_cache(format, project, datadir, &path)
-            }
-        }
-    }
-}
-
-fn format_notes(project: Option<&str>, datadir: &PathBuf) -> String {
-    let projects = get_projects(datadir, project);
-    let notes = get_projects_notes(datadir, projects);
-
-    format_projects_notes(notes)
-}
-
-fn format_asciidoc(input: String) -> String {
+fn string_from_editor() -> String {
     let tmpdir = TempDir::new("lablog_tmp").unwrap();
-    let tmppath = tmpdir.path().join("output.asciidoc");
-    let mut file = File::create(&tmppath).unwrap();
-    file.write_all(input.as_bytes()).unwrap();
-
-    trace!("tmp file for asciidoc: {}",
-           file_to_string(&tmppath).unwrap());
-
-    let output = Command::new("asciidoctor")
-        .arg("--out-file")
-        .arg("-")
-        .arg(tmppath)
-        .output()
-        .unwrap();
-
-    debug!("status: {}", output.status);
-    debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-    debug!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-
-    String::from_utf8_lossy(&output.stdout).into_owned()
-}
-
-fn format_projects_notes(notes: ProjectsNotes) -> String {
-    let mut out = String::new();
-
-    let header = include_str!("notes.header.asciidoc");
-    out.push_str(header);
-
-    let indentreg = Regex::new(r"(?m)^=").unwrap();
-    let indentrepl = "====";
-
-    for (project, notes) in notes {
-        out.push_str(format!("== {}\n", project).as_str());
-        for note in notes {
-            let indentnote = indentreg.replace_all(note.value.as_str(), indentrepl);
-            out.push_str(format!("=== {}\n{}\n\n", note.time_stamp, indentnote).as_str())
-        }
-    }
-
-    out
-}
-
-fn get_timeline_for_notes(notes: ProjectsNotes) -> String {
-    let mut timeline = DataMap::default();
-    for (project, notes) in notes {
-        for note in notes {
-            timeline.entry(note.time_stamp.date())
-                .or_insert_with(DataMap::default)
-                .entry(project.clone())
-                .or_insert_with(DataMap::default)
-                .insert(note.time_stamp, note);
-        }
-    }
-
-    let mut out = String::new();
-    let header = include_str!("timeline.header.asciidoc");
-    out.push_str(header);
-
-    let indentreg = Regex::new(r"(?m)^=").unwrap();
-    let indentrepl = "=====";
-    for (timestamp, projects) in timeline {
-        out.push_str(format!("== {}\n", timestamp).as_str());
-        for (project, notes) in projects {
-            out.push_str(format!("=== {}\n", project).as_str());
-            for (timestamp, note) in notes {
-                let indentnote = indentreg.replace_all(note.value.as_str(), indentrepl);
-                out.push_str(format!("==== {}\n{}\n\n", timestamp, indentnote).as_str());
+    let tmppath = tmpdir.path().join("note.asciidoc");
+    let editor = match env::var("VISUAL") {
+        Ok(val) => val,
+        Err(_) => {
+            match env::var("EDITOR") {
+                Ok(val) => val,
+                Err(_) => panic!("Neither $VISUAL nor $EDITOR is set."),
             }
         }
-    }
+    };
 
-    out
+    let mut editor_command = Command::new(editor);
+    editor_command.arg(tmppath.display().to_string());
+
+    let editor_proc = editor_command.spawn();
+    if editor_proc.expect("Couldn't launch editor").wait().is_ok() {
+        file_to_string(&tmppath).unwrap()
+    } else {
+        panic!("The editor broke")
+    }
 }
 
-fn get_timeline(project: Option<&str>, datadir: &PathBuf) -> String {
-    let projects = get_projects(datadir, project);
-    let project_notes = get_projects_notes(datadir, projects);
+fn get_options(args: &Args) -> Options {
+    let datadir = match args.value_of("datadir").unwrap() {
+        "$XDG_DATA_HOME/lablog" => {
+            let xdg = BaseDirectories::new().unwrap();
+            xdg.create_data_directory("lablog").unwrap()
+        }
+        _ => PathBuf::from(args.value_of("datadir").unwrap()),
+    };
 
-    get_timeline_for_notes(project_notes)
+    let options = Options { datadir: datadir };
+
+    debug!("options: {:?}", options);
+    options
 }
 
 fn get_filtered_notes(args: &Args, options: &Options) -> ProjectsNotes {
@@ -684,263 +365,4 @@ fn get_filtered_notes(args: &Args, options: &Options) -> ProjectsNotes {
         }
         None => after_notes,
     }
-}
-
-fn get_projects_asiidoc_write_cache(format: fn(Project, &PathBuf) -> String,
-                                    project: Project,
-                                    datadir: &PathBuf,
-                                    cachefile: &PathBuf)
-                                    -> String {
-    let asciidoc = format(project, datadir);
-    let out = format_asciidoc(asciidoc);
-
-    let modified = match project {
-        Some(_) => {
-            let mut project_path = datadir.clone();
-            project_path.push(normalize_project_path(project, "csv"));
-
-            let (mtime, mtime_nsec) = match File::open(&project_path) {
-                Ok(file) => {
-                    match file.metadata() {
-                        Ok(metadata) => (metadata.mtime(), metadata.mtime_nsec() as u32),
-                        Err(_) => (0, 0),
-                    }
-                }
-                Err(_) => (0, 0),
-            };
-
-            debug!("project file mtime: {}", mtime);
-            debug!("project file mtime_nsec: {}", mtime_nsec);
-            NaiveDateTime::from_timestamp(mtime, mtime_nsec)
-        }
-        None => NaiveDateTime::from_timestamp(0, 0),
-    };
-
-    debug!("cachefile put: {:#?}", cachefile);
-
-    let cache = HTMLCache {
-        gitcommit: githelper::get_current_commitid_for_repo(datadir).unwrap(),
-        html: out.clone(),
-        modified: modified,
-    };
-
-    let encoded = json::encode(&cache).unwrap();
-    let mut file = File::create(cachefile).unwrap();
-    file.write_all(encoded.as_bytes()).unwrap();
-
-    out
-}
-
-fn get_options(args: &Args) -> Options {
-    let datadir = match args.value_of("datadir").unwrap() {
-        "$XDG_DATA_HOME/lablog" => {
-            let xdg = BaseDirectories::new().unwrap();
-            xdg.create_data_directory("lablog").unwrap()
-        }
-        _ => PathBuf::from(args.value_of("datadir").unwrap()),
-    };
-
-    let options = Options { datadir: datadir };
-
-    debug!("options: {:?}", options);
-    options
-}
-
-fn get_datadir2() -> PathBuf {
-    let xdg = BaseDirectories::new().unwrap();
-    xdg.create_data_directory("lablog").unwrap()
-}
-
-fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNotes {
-    let mut map = DataMap::default();
-
-    for project in projects {
-        let mut project_path = datadir.clone();
-        project_path.push(normalize_project_path(Some(project.as_str()), "csv"));
-
-        let notes = get_notes(project_path);
-        map.insert(project, notes);
-    }
-
-    map
-}
-
-fn get_projects(datadir: &PathBuf, project: Project) -> Projects {
-    let ok_walkdir: Vec<walkdir::DirEntry> = WalkDir::new(&datadir)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .collect();
-
-    trace!("ok_walkdir: {:#?}", ok_walkdir);
-
-    let stripped_paths: Vec<PathBuf> = ok_walkdir.iter()
-        .filter(|e| e.path().is_file())
-        .filter(|e| match e.path().extension() {
-            Some(ext) => ext.to_str().unwrap() == "csv",
-            None => false,
-        })
-        .map(|e| e.path().strip_prefix(&datadir))
-        .filter_map(|e| e.ok())
-        .filter(|e| !e.to_str().unwrap().starts_with('.'))
-        .map(|e| e.with_extension(""))
-        .collect();
-
-    trace!("stripped_paths: {:#?}", stripped_paths);
-
-    let projects: Projects = stripped_paths.into_iter()
-        .map(|e| e.to_str().unwrap().replace("/", PROJECT_SEPPERATOR))
-        .collect();
-
-    trace!("projects: {:#?}", projects);
-
-    match project {
-        Some(project) => {
-            let re = Regex::new(project).unwrap();
-            projects.into_iter().filter(|project| re.is_match(project)).collect()
-        }
-        None => projects,
-    }
-}
-
-fn get_notes(project_path: PathBuf) -> Notes {
-    let mut map = DataSet::default();
-    let mut rdr = csv::Reader::from_file(project_path).unwrap().has_headers(false);
-
-    for record in rdr.decode() {
-        let note: Note = record.unwrap();
-
-        trace!("note: {:#?}", note);
-
-        map.insert(note);
-    }
-
-    map
-}
-
-fn filter_notes_by_timestamp(notes: ProjectsNotes,
-                             timestamp: DateTime<UTC>,
-                             after: bool)
-                             -> ProjectsNotes {
-    trace!("notes before filter: {:#?}", notes);
-
-    let mut filtered_notes = DataMap::default();
-    for (project, notes) in notes {
-        let filternotes: DataSet<_> = notes.into_iter()
-            .filter(|note| {
-                trace!("filter note: {:#?}", note);
-                trace!("timestamp: {:#?}", timestamp);
-
-                let yield_note = if after {
-                    debug!("filter after");
-                    note.time_stamp >= timestamp
-                } else {
-                    debug!("filter before");
-                    note.time_stamp <= timestamp
-                };
-
-                trace!("yield: {}", yield_note);
-
-                yield_note
-            })
-            .collect();
-
-        if !filternotes.is_empty() {
-            debug!("filternotes is not empty");
-            filtered_notes.insert(project, filternotes);
-        }
-    }
-
-    trace!("notes after filter: {:#?}", filtered_notes);
-
-    filtered_notes
-}
-
-fn write_note(datadir: &PathBuf, project: Project, note: &Note) -> Option<()> {
-    if note.value == "" {
-        warn!("Note with empty value");
-        return None;
-    }
-
-    let mut project_path = datadir.clone();
-    project_path.push(normalize_project_path(project, "csv"));
-
-    trace!("project_path: {:#?}", project_path);
-    fs::create_dir_all(project_path.parent().unwrap()).unwrap();
-
-    let mut file = match OpenOptions::new().append(true).open(&project_path) {
-        Ok(file) => file,
-        Err(_) => OpenOptions::new().append(true).create(true).open(&project_path).unwrap(),
-    };
-
-    let mut wtr = csv::Writer::from_memory();
-    wtr.encode(note).unwrap();
-    file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
-
-    Some(())
-}
-
-fn string_from_editor() -> String {
-    let tmpdir = TempDir::new("lablog_tmp").unwrap();
-    let tmppath = tmpdir.path().join("note.asciidoc");
-    let editor = match env::var("VISUAL") {
-        Ok(val) => val,
-        Err(_) => {
-            match env::var("EDITOR") {
-                Ok(val) => val,
-                Err(_) => panic!("Neither $VISUAL nor $EDITOR is set."),
-            }
-        }
-    };
-
-    let mut editor_command = Command::new(editor);
-    editor_command.arg(tmppath.display().to_string());
-
-    let editor_proc = editor_command.spawn();
-    if editor_proc.expect("Couldn't launch editor").wait().is_ok() {
-        file_to_string(&tmppath).unwrap()
-    } else {
-        panic!("The editor broke")
-    }
-}
-
-fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
-    let input = match input {
-        "today" => format!("{}", Local::now().format("%Y-%m-%d")),
-        "yesterday" => {
-            let yesterday = Local::now() - Duration::days(1);
-            format!("{}", yesterday.format("%Y-%m-%d"))
-        }
-        _ => String::from(input),
-    };
-
-    trace!("time_parser input after natural timestamp: {}", input);
-
-    input.parse()
-        .or(UTC.datetime_from_str(input.as_str(), "%Y-%m-%d %H:%M:%S"))
-        .or(UTC.datetime_from_str(format!("{}:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
-        .or(UTC.datetime_from_str(format!("{}:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
-        .or(UTC.datetime_from_str(format!("{} 00:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
-        .or(UTC.datetime_from_str(format!("{}-01 00:00:00", input).as_str(),
-                                  "%Y-%m-%d %H:%M:%S"))
-        .or(UTC.datetime_from_str(format!("{}-01-01 00:00:00", input).as_str(),
-                                  "%Y-%m-%d %H:%M:%S"))
-}
-
-fn normalize_project_path(project: Project, extention: &str) -> String {
-    match project {
-        Some(project) => {
-            format!("{}.{}",
-                    project.replace(PROJECT_SEPPERATOR, "/").as_str(),
-                    extention)
-        }
-        None => panic!("can not normalize the all projects project"),
-    }
-}
-
-fn file_to_string(filepath: &Path) -> IOResult<String> {
-    let mut s = String::new();
-    let mut f = File::open(filepath)?;
-    f.read_to_string(&mut s)?;
-
-    Ok(s)
 }

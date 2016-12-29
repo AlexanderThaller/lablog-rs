@@ -130,16 +130,6 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
-  - web:
-      about: start a webserver and serve notes over http
-      args:
-        - listen_address:
-            help: the address and port to listen on
-            long: listen
-            short: L
-            takes_value: true
-            default_value: "0.0.0.0:18080"
-            value_name: adress:port
   - dates:
       about: list dates when notes where taken
       args:

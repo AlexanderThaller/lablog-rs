@@ -52,9 +52,6 @@ _lablog() {
             timestamps)
                 cmd+="_timestamps"
                 ;;
-            web)
-                cmd+="_web"
-                ;;
             *)
                 ;;
         esac
@@ -62,7 +59,7 @@ _lablog() {
 
     case "${cmd}" in
         lablog)
-            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes timestamps projects web dates timeline repo search help"
+            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes timestamps projects dates timeline repo search help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -406,29 +403,6 @@ _lablog() {
                     ;;
                     -A)
                     COMPREPLY=("<timestamp>")
-                    return 0
-                    ;;
-                *)
-                    COMPREPLY=()
-                    ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-            return 0
-            ;;
-        lablog_web)
-            opts=" -L -h -V  --listen --help --version  "
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-                return 0
-            fi
-            case "${prev}" in
-                
-                --listen)
-                    COMPREPLY=("<adress:port>")
-                    return 0
-                    ;;
-                    -L)
-                    COMPREPLY=("<adress:port>")
                     return 0
                     ;;
                 *)
