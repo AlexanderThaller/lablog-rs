@@ -1,0 +1,444 @@
+_lablog() {
+    local i cur prev opts cmds
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    cmd=""
+    opts=""
+
+    for i in ${COMP_WORDS[@]}
+    do
+        case "${i}" in
+            lablog)
+                cmd="lablog"
+                ;;
+            
+            dates)
+                cmd+="_dates"
+                ;;
+            help)
+                cmd+="_help"
+                ;;
+            init)
+                cmd+="_init"
+                ;;
+            note)
+                cmd+="_note"
+                ;;
+            notes)
+                cmd+="_notes"
+                ;;
+            projects)
+                cmd+="_projects"
+                ;;
+            pull)
+                cmd+="_pull"
+                ;;
+            push)
+                cmd+="_push"
+                ;;
+            repo)
+                cmd+="_repo"
+                ;;
+            search)
+                cmd+="_search"
+                ;;
+            sync)
+                cmd+="_sync"
+                ;;
+            timeline)
+                cmd+="_timeline"
+                ;;
+            timestamps)
+                cmd+="_timestamps"
+                ;;
+            web)
+                cmd+="_web"
+                ;;
+            *)
+                ;;
+        esac
+    done
+
+    case "${cmd}" in
+        lablog)
+            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes timestamps projects web dates timeline repo search help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --loglevel)
+                    COMPREPLY=($(compgen -W "trace debug info warn error" -- ${cur}))
+                    return 0
+                    ;;
+                    -l)
+                    COMPREPLY=($(compgen -W "trace debug info warn error" -- ${cur}))
+                    return 0
+                    ;;
+                --datadir)
+                    COMPREPLY=("<path>")
+                    return 0
+                    ;;
+                    -D)
+                    COMPREPLY=("<path>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        
+        lablog_dates)
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_help)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_note)
+            opts=" -f -e -t -h -V  --file --editor --timestamp --help --version  <project> <text> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --file)
+                    COMPREPLY=("<path>")
+                    return 0
+                    ;;
+                    -f)
+                    COMPREPLY=("<path>")
+                    return 0
+                    ;;
+                --timestamp)
+                    COMPREPLY=("<datetime>")
+                    return 0
+                    ;;
+                    -t)
+                    COMPREPLY=("<datetime>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_notes)
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_projects)
+            opts=" -h -V  --help --version  <project> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo)
+            opts=" -h -V  --help --version   pull push sync init help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo_help)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo_init)
+            opts=" -R -h -V  --remote --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --remote)
+                    COMPREPLY=("<address>")
+                    return 0
+                    ;;
+                    -R)
+                    COMPREPLY=("<address>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo_pull)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo_push)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_repo_sync)
+            opts=" -h -V  --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_search)
+            opts=" -p -B -A -h -V  --project --before --after --help --version  <text> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --project)
+                    COMPREPLY=("<project>")
+                    return 0
+                    ;;
+                    -p)
+                    COMPREPLY=("<project>")
+                    return 0
+                    ;;
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_timeline)
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_timestamps)
+            opts=" -B -A -h -V  --before --after --help --version  <project> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --before)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<timestamp>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_web)
+            opts=" -L -h -V  --listen --help --version  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --listen)
+                    COMPREPLY=("<adress:port>")
+                    return 0
+                    ;;
+                    -L)
+                    COMPREPLY=("<adress:port>")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+    esac
+}
+
+complete -F _lablog -o bashdefault -o default lablog
