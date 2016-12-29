@@ -163,13 +163,14 @@ fn test_asciidoc_timestamp() {
 }
 
 fn get_datadir() -> PathBuf {
-    let conf = config::active().expect("can not get config");
+    let conf = config::active().expect("can not get config for reading the datadir");
 
     let datadir = match conf.get_str("datadir") {
         Ok(config) => PathBuf::from(config),
         Err(_) => {
-            let xdg = BaseDirectories::new().unwrap();
-            xdg.create_data_directory("lablog").unwrap()
+            let xdg = BaseDirectories::new()
+                .expect("can not create new xdg context for creating the datadir");
+            xdg.create_data_directory("lablog").expect("can not create new datadir directory")
         }
     };
 
@@ -189,14 +190,19 @@ fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
             get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
         }
         Some(path) => {
-            let data = file_to_string(&path).unwrap();
-            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
+            let data = file_to_string(&path).expect("can not read cache file");
+            let decoded: HTMLCache = json::decode(data.as_str())
+                .expect("can not decode cache file");
 
             let mut project_path = datadir.clone();
             project_path.push(normalize_project_path(project, "csv"));
             trace!("project_path: {:#?}", project_path);
 
-            let metadata = File::open(&project_path).unwrap().metadata().unwrap();
+            let metadata = File::open(&project_path)
+                .expect("can not open file of cachefile to read metadata")
+                .metadata()
+                .expect("can not read metadata from cachefile");
+
             let mtime = metadata.mtime();
             let mtime_nsec = metadata.mtime_nsec() as u32;
 
@@ -252,14 +258,15 @@ fn get_projects_asiidoc_write_cache(format: fn(Project, &PathBuf) -> String,
     debug!("cachefile put: {:#?}", cachefile);
 
     let cache = HTMLCache {
-        gitcommit: githelper::get_current_commitid_for_repo(datadir).unwrap(),
+        gitcommit: githelper::get_current_commitid_for_repo(datadir)
+            .expect("can not get current commit for writing to cachefile"),
         html: out.clone(),
         modified: modified,
     };
 
-    let encoded = json::encode(&cache).unwrap();
-    let mut file = File::create(cachefile).unwrap();
-    file.write_all(encoded.as_bytes()).unwrap();
+    let encoded = json::encode(&cache).expect("can not encode cachefile");
+    let mut file = File::create(cachefile).expect("can not create cachefile");
+    file.write_all(encoded.as_bytes()).expect("can not write to cachefile");
 
     out
 }
@@ -272,20 +279,18 @@ fn note_from_form(form: &NotesForm) -> Note {
 }
 
 fn format_asciidoc(input: String) -> String {
-    let tmpdir = TempDir::new("lablog_tmp").unwrap();
+    let tmpdir = TempDir::new("lablog_tmp")
+        .expect("can not create a new tmpdir for asciiformatting");
     let tmppath = tmpdir.path().join("output.asciidoc");
-    let mut file = File::create(&tmppath).unwrap();
-    file.write_all(input.as_bytes()).unwrap();
-
-    trace!("tmp file for asciidoc: {}",
-           file_to_string(&tmppath).unwrap());
+    let mut file = File::create(&tmppath).expect("can not create a new file for asciiformatting");
+    file.write_all(input.as_bytes()).expect("can not write to asciiformatting file");
 
     let output = Command::new("asciidoctor")
         .arg("--out-file")
         .arg("-")
         .arg(tmppath)
         .output()
-        .unwrap();
+        .expect("problems while running asciidoctor");
 
     debug!("status: {}", output.status);
     debug!("stdout: {}", String::from_utf8_lossy(&output.stdout));
@@ -295,7 +300,7 @@ fn format_asciidoc(input: String) -> String {
 }
 
 fn cache_find_file(project: Project) -> Option<PathBuf> {
-    let xdg = BaseDirectories::new().unwrap();
+    let xdg = BaseDirectories::new().expect("can not get new xdg context for finding a cachefile");
     let mut cache_path = PathBuf::from("lablog");
     cache_path.push(normalize_project_path(project, "cache"));
 
@@ -308,10 +313,11 @@ fn cache_find_file(project: Project) -> Option<PathBuf> {
 }
 
 fn cache_place_file(project: Project) -> PathBuf {
-    let xdg = BaseDirectories::new().unwrap();
+    let xdg = BaseDirectories::new()
+        .expect("can not open a new xdg context for writing a cachefile");
     let mut cache_path = PathBuf::from("lablog");
     cache_path.push(normalize_project_path(project, "cache"));
-    let cachefile = xdg.place_cache_file(&cache_path).unwrap();
+    let cachefile = xdg.place_cache_file(&cache_path).expect("can not place a new cachefile");
 
     debug!("put cachefile: {:#?} from project {:#?}",
            cachefile,
@@ -331,10 +337,12 @@ fn format_or_cached_git(format: fn(Project, &PathBuf) -> String,
             get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
         }
         Some(path) => {
-            let data = file_to_string(&path).unwrap();
-            let decoded: HTMLCache = json::decode(data.as_str()).unwrap();
+            let data = file_to_string(&path).expect("can not read data from cached git file");
+            let decoded: HTMLCache = json::decode(data.as_str())
+                .expect("can not decode data of a git cache file");
 
-            let gitcommit = githelper::get_current_commitid_for_repo(datadir).unwrap();
+            let gitcommit = githelper::get_current_commitid_for_repo(datadir)
+                .expect("can not get the current git commit for a git cache file");
             if gitcommit == decoded.gitcommit {
                 debug!("serve cachefile");
                 decoded.html
