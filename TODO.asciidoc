@@ -27,3 +27,6 @@ parameter
 * add month, week, year aggregation for dates command
 * move notes between projects
 * preview button for note adding webinterface
+* sepperate webinterface from cli interface and use a shared library
+* make note formatting so that notes are ordered under dates or something to
+make it easier to browse them
