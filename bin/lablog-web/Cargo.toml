@@ -2,33 +2,19 @@
 name = "lablog-web"
 version = "0.1.0"
 authors = ["Alexander Thaller <alexander@thaller.ws>"]
-build = "build.rs"
 
 [dependencies]
 chrono = { version = "*", features = ["rustc-serialize"] }
-csv = "*"
-env_logger = "*"
 githelper = "*"
-libc = "*"
+lablog_lib = { path = "../../lib" }
 log = "*"
-loggerv = "*"
-regex = "*"
 rocket = "*"
 rocket_codegen = "*"
 rustc-serialize = "*"
 serde = "*"
 serde_derive = "*"
 tempdir = "*"
-walkdir = "*"
 xdg = "*"
-
-[dependencies.clap]
-version = "*"
-features = ["yaml"]
-
-[build-dependencies.clap]
-version = "*"
-features = ["yaml"]
 
 [dependencies.rocket_contrib]
 version = "*"
