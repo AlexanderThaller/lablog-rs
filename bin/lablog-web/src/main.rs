@@ -80,12 +80,21 @@ struct NotesForm {
     note: String,
 }
 
+#[derive(FromForm,Debug,Default)]
+struct PageOptions {
+    raw: Option<bool>,
+}
+
 fn main() {
     rocket::ignite()
         .mount("/",
                routes![webapp_index,
                        webapp_timeline,
+                       webapp_timeline_nooptions,
+                       webapp_notes_all,
+                       webapp_notes_all_nooptions,
                        webapp_notes,
+                       webapp_notes_nooptions,
                        webapp_notes_legacy,
                        webapp_note,
                        webapp_note_add])
@@ -102,26 +111,65 @@ fn webapp_index() -> Template {
 }
 
 #[get("/timeline")]
-fn webapp_timeline() -> String {
+fn webapp_timeline_nooptions() -> String {
     let datadir = get_datadir();
-    format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"))
+    format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"), false)
+}
+
+#[get("/timeline?<options>")]
+fn webapp_timeline(options: PageOptions) -> String {
+    debug!("options: {:#?}", options);
+
+    let datadir = get_datadir();
+    format_or_cached_git(get_timeline,
+                         None,
+                         &datadir,
+                         Some("_timeline"),
+                         options.raw.unwrap_or(false))
+}
+
+#[get("/notes")]
+fn webapp_notes_all_nooptions() -> String {
+    let datadir = get_datadir();
+    format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false)
+}
+
+#[get("/notes?<options>")]
+fn webapp_notes_all(options: PageOptions) -> String {
+    debug!("options: {:#?}", options);
+
+    let datadir = get_datadir();
+    format_or_cached_git(format_notes,
+                         None,
+                         &datadir,
+                         Some("_notes"),
+                         options.raw.unwrap_or(false))
 }
 
 #[get("/notes/<project>")]
-fn webapp_notes(project: &str) -> String {
+fn webapp_notes_nooptions(project: &str) -> String {
     let datadir = get_datadir();
-    match project {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
-        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
-    }
+    format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false)
+}
+
+#[get("/notes/<project>?<options>")]
+fn webapp_notes(project: &str, options: PageOptions) -> String {
+    debug!("options: {:#?}", options);
+
+    let datadir = get_datadir();
+    format_or_cached_modified(format_notes,
+                              Some(project),
+                              &datadir,
+                              Some(project),
+                              options.raw.unwrap_or(false))
 }
 
 #[get("/show/entries/<project>")]
 fn webapp_notes_legacy(project: &str) -> String {
     let datadir = get_datadir();
     match project {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
-        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
+        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false),
+        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false),
     }
 }
 
@@ -174,7 +222,7 @@ fn get_datadir() -> PathBuf {
         }
     };
 
-    println!("datadir: {:#?}", datadir);
+    debug!("datadir: {:#?}", datadir);
 
     datadir
 }
@@ -182,8 +230,13 @@ fn get_datadir() -> PathBuf {
 fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
                              project: Project,
                              datadir: &PathBuf,
-                             cachefile: Project)
+                             cachefile: Project,
+                             raw: bool)
                              -> String {
+    if raw {
+        return format(project, datadir);
+    }
+
     match cache_find_file(cachefile) {
         None => {
             debug!("no cachefile will generate new file");
@@ -219,6 +272,39 @@ fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
                 decoded.html
             } else {
                 debug!("file_modified is newer than decoded.modified");
+                get_projects_asiidoc_write_cache(format, project, datadir, &path)
+            }
+        }
+    }
+}
+
+fn format_or_cached_git(format: fn(Project, &PathBuf) -> String,
+                        project: Project,
+                        datadir: &PathBuf,
+                        cachefile: Project,
+                        raw: bool)
+                        -> String {
+    if raw {
+        return format(project, datadir);
+    }
+
+    match cache_find_file(cachefile) {
+        None => {
+            debug!("no cachefile will generate new file");
+            get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
+        }
+        Some(path) => {
+            let data = file_to_string(&path).expect("can not read data from cached git file");
+            let decoded: HTMLCache = json::decode(data.as_str())
+                .expect("can not decode data of a git cache file");
+
+            let gitcommit = githelper::get_current_commitid_for_repo(datadir)
+                .expect("can not get the current git commit for a git cache file");
+            if gitcommit == decoded.gitcommit {
+                debug!("serve cachefile");
+                decoded.html
+            } else {
+                debug!("commits different will generate new file");
                 get_projects_asiidoc_write_cache(format, project, datadir, &path)
             }
         }
@@ -279,7 +365,7 @@ fn note_from_form(form: &NotesForm) -> Note {
 }
 
 fn format_asciidoc(input: String) -> String {
-    let tmpdir = TempDir::new("lablog_tmp")
+    let tmpdir = TempDir::new("lablog-web_tmp")
         .expect("can not create a new tmpdir for asciiformatting");
     let tmppath = tmpdir.path().join("output.asciidoc");
     let mut file = File::create(&tmppath).expect("can not create a new file for asciiformatting");
@@ -301,7 +387,7 @@ fn format_asciidoc(input: String) -> String {
 
 fn cache_find_file(project: Project) -> Option<PathBuf> {
     let xdg = BaseDirectories::new().expect("can not get new xdg context for finding a cachefile");
-    let mut cache_path = PathBuf::from("lablog");
+    let mut cache_path = PathBuf::from("lablog-web");
     cache_path.push(normalize_project_path(project, "cache"));
 
     let cachefile = xdg.find_cache_file(&cache_path);
@@ -315,7 +401,7 @@ fn cache_find_file(project: Project) -> Option<PathBuf> {
 fn cache_place_file(project: Project) -> PathBuf {
     let xdg = BaseDirectories::new()
         .expect("can not open a new xdg context for writing a cachefile");
-    let mut cache_path = PathBuf::from("lablog");
+    let mut cache_path = PathBuf::from("lablog-web");
     cache_path.push(normalize_project_path(project, "cache"));
     let cachefile = xdg.place_cache_file(&cache_path).expect("can not place a new cachefile");
 
@@ -324,32 +410,4 @@ fn cache_place_file(project: Project) -> PathBuf {
            project);
 
     cachefile
-}
-
-fn format_or_cached_git(format: fn(Project, &PathBuf) -> String,
-                        project: Project,
-                        datadir: &PathBuf,
-                        cachefile: Project)
-                        -> String {
-    match cache_find_file(cachefile) {
-        None => {
-            debug!("no cachefile will generate new file");
-            get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
-        }
-        Some(path) => {
-            let data = file_to_string(&path).expect("can not read data from cached git file");
-            let decoded: HTMLCache = json::decode(data.as_str())
-                .expect("can not decode data of a git cache file");
-
-            let gitcommit = githelper::get_current_commitid_for_repo(datadir)
-                .expect("can not get the current git commit for a git cache file");
-            if gitcommit == decoded.gitcommit {
-                debug!("serve cachefile");
-                decoded.html
-            } else {
-                debug!("commits different will generate new file");
-                get_projects_asiidoc_write_cache(format, project, datadir, &path)
-            }
-        }
-    }
 }

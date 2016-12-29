@@ -13,7 +13,6 @@
 * Subproject handling
 * allow specification of timestamp for note
 * https://github*com/pingcap/rust-prometheus for web 
-* add raw flag to notes webpage
 * merge command to merge one project into another
 * colorisation
 * tabcompletion
