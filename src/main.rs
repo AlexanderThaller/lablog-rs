@@ -265,15 +265,18 @@ fn run_repo(args: Args, options: Options) {
 }
 
 fn run_repo_pull(options: Options) {
+    info!("pulling from remote repository");
     githelper::pull(options.datadir.as_path()).expect("can not pull from repo");
 }
 
 fn run_repo_push(options: Options) {
+    info!("pushing to remote repository");
     githelper::push(options.datadir.as_path()).expect("can not push to repo");
 }
 
 fn run_repo_sync(options: Options) {
-    githelper::sync(options.datadir.as_path()).expect("can not sync repo");
+    info!("syncing with remote repository");
+    githelper::sync(options.datadir.as_path()).expect("can not sync with repo");
 }
 
 fn run_repo_init(args: &Args, options: Options) {
@@ -442,7 +445,7 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
         git_commit_note(&datadir, Some(project), &note)
     }
 
-    githelper::sync(datadir.as_path()).expect("can not sync repo");
+    githelper::sync(datadir.as_path()).expect("can not sync with repo");
 
     let timestamp = asciidoc_timestamp(format!("{}", note.time_stamp).as_str());
     Redirect::to(format!("/notes/{}#{}", project, timestamp).as_str())
