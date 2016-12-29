@@ -52,11 +52,14 @@ use lablog_lib::write_note;
 use rocket::config;
 use rocket_contrib::Template;
 use rocket::request::Form;
+use rocket::response::NamedFile;
 use rocket::response::Redirect;
 use rustc_serialize::json;
 use std::fs::File;
+use std::io;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use tempdir::TempDir;
@@ -75,8 +78,15 @@ struct IndexContext {
 }
 
 #[derive(Serialize)]
+struct NoteContext {
+    projects: Projects,
+    selected_project: Option<String>,
+}
+
+#[derive(Serialize)]
 struct NotesContext {
     title: String,
+    add_note: Option<String>,
     formatted_notes: String,
 }
 
@@ -100,7 +110,9 @@ fn main() {
                        webapp_notes,
                        webapp_notes_legacy,
                        webapp_note,
-                       webapp_note_add])
+                       webapp_note_project,
+                       webapp_note_add,
+                       webapp_static])
         .launch();
 }
 
@@ -120,6 +132,7 @@ fn webapp_timeline() -> Template {
 
     let context = NotesContext {
         title: String::from("Timeline"),
+        add_note: None,
         formatted_notes: formatted,
     };
 
@@ -133,6 +146,7 @@ fn webapp_notes_all() -> Template {
 
     let context = NotesContext {
         title: String::from("All Notes"),
+        add_note: None,
         formatted_notes: formatted,
     };
 
@@ -147,6 +161,7 @@ fn webapp_notes(project: &str) -> Template {
 
     let context = NotesContext {
         title: String::from(project),
+        add_note: Some(String::from(project)),
         formatted_notes: formatted,
     };
 
@@ -166,6 +181,10 @@ fn webapp_notes_legacy(project: &str) -> Template {
             "_" => String::from("All Notes"),
             _ => String::from(project),
         },
+        add_note: match project {
+            "_" => None,
+            _ => Some(String::from(project)),
+        },
         formatted_notes: formatted,
     };
 
@@ -176,7 +195,24 @@ fn webapp_notes_legacy(project: &str) -> Template {
 fn webapp_note() -> Template {
     let datadir = get_datadir();
     let projects = get_projects(&datadir, None);
-    let context = IndexContext { projects: projects };
+
+    let context = NoteContext {
+        projects: projects,
+        selected_project: None,
+    };
+
+    Template::render("note", &context)
+}
+
+#[get("/note/<project>")]
+fn webapp_note_project(project: String) -> Template {
+    let datadir = get_datadir();
+    let projects = get_projects(&datadir, None);
+
+    let context = NoteContext {
+        projects: projects,
+        selected_project: Some(project),
+    };
 
     Template::render("note", &context)
 }
@@ -197,6 +233,11 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
 
     let timestamp = asciidoc_timestamp(format!("{}", note.time_stamp).as_str());
     Redirect::to(format!("/notes/{}#{}", project, timestamp).as_str())
+}
+
+#[get("/<path..>", rank = 5)]
+fn webapp_static(path: PathBuf) -> io::Result<NamedFile> {
+    NamedFile::open(Path::new("static/").join(path))
 }
 
 fn asciidoc_timestamp(input: &str) -> String {
@@ -364,6 +405,8 @@ fn note_from_form(form: &NotesForm) -> Note {
 }
 
 fn format_asciidoc(input: String) -> String {
+    println!("input: {}", input);
+
     let tmpdir = TempDir::new("lablog-web_tmp")
         .expect("can not create a new tmpdir for asciiformatting");
     let tmppath = tmpdir.path().join("output.asciidoc");
@@ -371,8 +414,6 @@ fn format_asciidoc(input: String) -> String {
     file.write_all(input.as_bytes()).expect("can not write to asciiformatting file");
 
     let output = Command::new("asciidoctor")
-        .arg("--safe-mode")
-        .arg("secure")
         .arg("--no-header-footer")
         .arg("--out-file")
         .arg("-")

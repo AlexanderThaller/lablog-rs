@@ -3,10 +3,15 @@
   <head>
     <title>Lablog - Add Note</title>
 
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="/css/main.css">
   </head>
   <body>
-    <a href="/">Back</a>
+    <header>
+      <a href="/">Back</a>
+    </header>
 
     <hr>
 
@@ -16,14 +21,20 @@
         {% for project in projects %}
         <option value="{{ project }}"></option>
         {% endfor %}
-      </datalist><br>
+      </datalist>
 
-      <input name="project" list="projects" style="width: 90%">
+      <br>
+
+      {% if selected_project %}
+      <input name="project" list="projects" style="width: 90%" placeholder="Project" value="{{ selected_project }}">
+      {% else %}
+      <input name="project" list="projects" style="width: 90%" placeholder="Project">
+      {% endif %}
 
       <br/>
       <br/>
 
-      <textarea name="note" style="width: 90%; height: 500px"></textarea>
+      <textarea name="note" style="width: 90%; height: 500px" placeholder="Note"></textarea>
 
       <br/>
       <br/>

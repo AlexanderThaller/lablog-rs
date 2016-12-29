@@ -5,12 +5,30 @@
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
   </head>
   <body>
-    <a href="/">Back</a>
+    <nav>
+      <a href="/">Back</a>
+      <a href="/note/{% if add_note %}{{ add_note }}{% endif %}">Add Note</a>
+    </nav>
 
     <hr>
-    <h1>{{ title }}</h1>
-    {{ formatted_notes }}
+
+    <header>
+      <h1>{{ title }}</h1>
+    </header>
+
+    <article>
+      {{ formatted_notes }}
+    </article>
+
+    <hr>
+
+    <footer>
+      <a href="#top">Go to top</a>
+    </footer>
   </body>
 </html>

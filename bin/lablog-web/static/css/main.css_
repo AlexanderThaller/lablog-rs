@@ -1,0 +1,44 @@
+img,object,embed {
+	max-width: 100%;
+	height: auto;
+}
+body {
+	font-family: sans-serif;
+	font-size: 21px;
+	line-height: 27px;
+}
+pre,xmp,plaintext,listing {
+	font-size: 16px;
+}
+p {
+	-ms-hyphens: auto;
+	-webkit-hyphens: auto;
+	hyphens: auto;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+	margin-bottom: 1.25em;
+}
+table.tableblock {
+	border-bottom: solid 2px;
+	max-width: 90%;
+	margin-left: auto;
+	margin-right: auto;
+}
+table.tableblock tr.even,table.tableblock tr.alt,table.tableblock tr:nth-of-type(even) {
+	background: #f8f8f7;
+}
+table.tableblock thead,table.tableblock tfoot {
+	font-weight: bold;
+	border-bottom: solid 1px;
+	border-top: solid 2px;
+}
+dl dt {
+	margin-bottom: .3125em;
+	font-weight: bold;
+}
+td.hdlist1 {
+	font-weight: bold;
+	padding-right: 1.25em;
+}

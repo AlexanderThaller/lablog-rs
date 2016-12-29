@@ -1,0 +1,94 @@
+#toctitle {
+	font-size: 19px;
+}
+
+#toc {
+  font-size: 16px;
+}
+
+img,object,embed {
+	max-width: 95%;
+	height: auto;
+}
+img,object,embed {
+	max-width: 95%;
+	height: auto;
+}
+body {
+	font-family: sans-serif;
+	font-size: 19px;
+	line-height: 24px;
+}
+pre,xmp,plaintext,listing {
+	font-size: 16px;
+	line-height: 20px;
+	max-width: 95%;
+  padding-left: 1em;
+}
+p {
+	-ms-hyphens: auto;
+	-webkit-hyphens: auto;
+	hyphens: auto;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+	margin-bottom: 1.25em;
+}
+table.tableblock {
+	border-bottom: solid 2px;
+	max-width: 95%;
+	margin-left: auto;
+	margin-right: auto;
+}
+table.tableblock tr.even,table.tableblock tr.alt,table.tableblock tr:nth-of-type(even) {
+	background: rgba(0, 0, 0, .10);
+}
+table.tableblock thead,table.tableblock tfoot {
+	font-weight: bold;
+	border-bottom: solid 1px;
+	border-top: solid 2px;
+}
+dl dt {
+	margin-bottom: .3125em;
+	font-weight: bold;
+}
+td.hdlist1 {
+	font-weight: bold;
+	padding-right: 1.25em;
+}
+table tr td i {
+	padding: .5625em .625em;
+}
+.admonitionblock>table td.icon {
+	text-align: center;
+	width: 150px;
+}
+.admonitionblock td.icon [class^="fa icon-"] {
+	font-size: 2.5em;
+	text-shadow: 1px 1px 2px rgba(0, 0, 0, .5);
+}
+.admonitionblock td.icon .icon-note:before {
+	content: "\f05a";
+	color: #19407c;
+}
+.admonitionblock td.icon .icon-tip:before {
+	content: "\f0eb";
+	text-shadow: 1px 1px 2px rgba(155, 155, 0, .8);
+	color: #111;
+}
+.admonitionblock td.icon .icon-warning:before {
+	content: "\f071";
+	color: #bf6900;
+}
+.admonitionblock td.icon .icon-caution:before {
+	content: "\f06d";
+	color: #bf3400;
+}
+.admonitionblock td.icon .icon-important:before {
+	content: "\f06a";
+	color: #bf0000;
+}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title {
+	font-style: italic;
+}
