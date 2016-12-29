@@ -74,6 +74,12 @@ struct IndexContext {
     projects: Projects,
 }
 
+#[derive(Serialize)]
+struct NotesContext {
+    title: String,
+    formatted_notes: String,
+}
+
 #[derive(FromForm,Debug)]
 struct NotesForm {
     project: String,
@@ -90,11 +96,8 @@ fn main() {
         .mount("/",
                routes![webapp_index,
                        webapp_timeline,
-                       webapp_timeline_nooptions,
                        webapp_notes_all,
-                       webapp_notes_all_nooptions,
                        webapp_notes,
-                       webapp_notes_nooptions,
                        webapp_notes_legacy,
                        webapp_note,
                        webapp_note_add])
@@ -111,66 +114,62 @@ fn webapp_index() -> Template {
 }
 
 #[get("/timeline")]
-fn webapp_timeline_nooptions() -> String {
+fn webapp_timeline() -> Template {
     let datadir = get_datadir();
-    format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"), false)
-}
+    let formatted = format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"), false);
 
-#[get("/timeline?<options>")]
-fn webapp_timeline(options: PageOptions) -> String {
-    debug!("options: {:#?}", options);
+    let context = NotesContext {
+        title: String::from("Timeline"),
+        formatted_notes: formatted,
+    };
 
-    let datadir = get_datadir();
-    format_or_cached_git(get_timeline,
-                         None,
-                         &datadir,
-                         Some("_timeline"),
-                         options.raw.unwrap_or(false))
+    Template::render("notes", &context)
 }
 
 #[get("/notes")]
-fn webapp_notes_all_nooptions() -> String {
+fn webapp_notes_all() -> Template {
     let datadir = get_datadir();
-    format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false)
-}
+    let formatted = format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false);
 
-#[get("/notes?<options>")]
-fn webapp_notes_all(options: PageOptions) -> String {
-    debug!("options: {:#?}", options);
+    let context = NotesContext {
+        title: String::from("All Notes"),
+        formatted_notes: formatted,
+    };
 
-    let datadir = get_datadir();
-    format_or_cached_git(format_notes,
-                         None,
-                         &datadir,
-                         Some("_notes"),
-                         options.raw.unwrap_or(false))
+    Template::render("notes", &context)
 }
 
 #[get("/notes/<project>")]
-fn webapp_notes_nooptions(project: &str) -> String {
+fn webapp_notes(project: &str) -> Template {
     let datadir = get_datadir();
-    format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false)
-}
+    let formatted =
+        format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false);
 
-#[get("/notes/<project>?<options>")]
-fn webapp_notes(project: &str, options: PageOptions) -> String {
-    debug!("options: {:#?}", options);
+    let context = NotesContext {
+        title: String::from(project),
+        formatted_notes: formatted,
+    };
 
-    let datadir = get_datadir();
-    format_or_cached_modified(format_notes,
-                              Some(project),
-                              &datadir,
-                              Some(project),
-                              options.raw.unwrap_or(false))
+    Template::render("notes", &context)
 }
 
 #[get("/show/entries/<project>")]
-fn webapp_notes_legacy(project: &str) -> String {
+fn webapp_notes_legacy(project: &str) -> Template {
     let datadir = get_datadir();
-    match project {
+    let formatted = match project {
         "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false),
         _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false),
-    }
+    };
+
+    let context = NotesContext {
+        title: match project {
+            "_" => String::from("All Notes"),
+            _ => String::from(project),
+        },
+        formatted_notes: formatted,
+    };
+
+    Template::render("notes", &context)
 }
 
 #[get("/note")]
@@ -372,6 +371,9 @@ fn format_asciidoc(input: String) -> String {
     file.write_all(input.as_bytes()).expect("can not write to asciiformatting file");
 
     let output = Command::new("asciidoctor")
+        .arg("--safe-mode")
+        .arg("secure")
+        .arg("--no-header-footer")
         .arg("--out-file")
         .arg("-")
         .arg(tmppath)
