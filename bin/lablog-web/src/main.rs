@@ -49,6 +49,7 @@ use lablog_lib::Note;
 use lablog_lib::Project;
 use lablog_lib::Projects;
 use lablog_lib::write_note;
+use rocket::config;
 use rocket_contrib::Template;
 use rocket::request::Form;
 use rocket::response::Redirect;
@@ -93,7 +94,7 @@ fn main() {
 
 #[get("/")]
 fn webapp_index() -> Template {
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     let projects = get_projects(&datadir, None);
     let context = IndexContext { projects: projects };
 
@@ -102,13 +103,13 @@ fn webapp_index() -> Template {
 
 #[get("/timeline")]
 fn webapp_timeline() -> String {
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"))
 }
 
 #[get("/notes/<project>")]
 fn webapp_notes(project: &str) -> String {
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     match project {
         "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
         _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
@@ -117,7 +118,7 @@ fn webapp_notes(project: &str) -> String {
 
 #[get("/show/entries/<project>")]
 fn webapp_notes_legacy(project: &str) -> String {
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     match project {
         "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes")),
         _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project)),
@@ -126,7 +127,7 @@ fn webapp_notes_legacy(project: &str) -> String {
 
 #[get("/note")]
 fn webapp_note() -> Template {
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     let projects = get_projects(&datadir, None);
     let context = IndexContext { projects: projects };
 
@@ -138,7 +139,7 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
     let note: Note = note_from_form(noteform.get());
     let project = noteform.get().project.as_str();
 
-    let datadir = get_datadir2();
+    let datadir = get_datadir();
     if write_note(&datadir, Some(project), &note).is_some() {
         git_commit_note(&datadir, Some(project), &note)
     }
@@ -161,9 +162,20 @@ fn test_asciidoc_timestamp() {
                "2016-10-27-15-14-07-704374171-utc")
 }
 
-fn get_datadir2() -> PathBuf {
-    let xdg = BaseDirectories::new().unwrap();
-    xdg.create_data_directory("lablog").unwrap()
+fn get_datadir() -> PathBuf {
+    let conf = config::active().expect("can not get config");
+
+    let datadir = match conf.get_str("datadir") {
+        Ok(config) => PathBuf::from(config),
+        Err(_) => {
+            let xdg = BaseDirectories::new().unwrap();
+            xdg.create_data_directory("lablog").unwrap()
+        }
+    };
+
+    println!("datadir: {:#?}", datadir);
+
+    datadir
 }
 
 fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
