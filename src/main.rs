@@ -115,6 +115,11 @@ struct HTMLCache {
     modified: NaiveDateTime,
 }
 
+#[derive(Debug)]
+struct Options {
+    datadir: PathBuf,
+}
+
 fn main() {
     let yaml = load_yaml!("cli.yml");
     let app = App::from_yaml(yaml)
@@ -129,37 +134,40 @@ fn main() {
     let loglevel: LogLevel = app.value_of("loglevel").unwrap().parse().unwrap();
     loggerv::init_with_level(loglevel).unwrap();
 
+    let options = get_options(&app);
+
     trace!("app: {:#?}", app);
     trace!("matches: {:#?}", matches);
+    trace!("options: {:#?}", options);
 
-    run(app)
+    run(app, options)
 }
 
-fn run(args: Args) {
+fn run(args: Args, options: Options) {
     match args.subcommand.clone() {
         Some(command) => {
             match command.name.as_str() {
-                "dates" => run_dates(command.matches),
-                "note" => run_note(command.matches),
-                "notes" => run_notes(command.matches),
-                "timestamps" => run_timestamps(command.matches),
-                "projects" => run_projects(command.matches),
-                "repo" => run_repo(command.matches),
-                "search" => run_search(command.matches),
-                "timeline" => run_timeline(command.matches),
-                "web" => run_webapp(command.matches),
+                "dates" => run_dates(command.matches, options),
+                "note" => run_note(command.matches, options),
+                "notes" => run_notes(command.matches, options),
+                "timestamps" => run_timestamps(command.matches, options),
+                "projects" => run_projects(command.matches, options),
+                "repo" => run_repo(command.matches, options),
+                "search" => run_search(command.matches, options),
+                "timeline" => run_timeline(command.matches, options),
+                "web" => run_webapp(),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
                 }
             }
         }
-        None => run_projects(args),
+        None => run_projects(args, options),
     }
 }
 
-fn run_dates(args: Args) {
-    let notes = get_filtered_notes(&args);
+fn run_dates(args: Args, options: Options) {
+    let notes = get_filtered_notes(&args, &options);
 
     let mut dates = DataMap::default();
     for notes in notes.values() {
@@ -173,9 +181,8 @@ fn run_dates(args: Args) {
     }
 }
 
-fn run_note(args: Args) {
+fn run_note(args: Args, options: Options) {
     trace!("run_note args: {:#?}", args);
-    let datadir = get_datadir(&args);
     let project = args.value_of("project");
 
     let text = if args.is_present("editor") {
@@ -209,18 +216,18 @@ fn run_note(args: Args) {
         value: text.into(),
     };
 
-    if write_note(&datadir, project, &note).is_some() {
-        git_commit_note(&datadir, project, &note)
+    if write_note(&options.datadir, project, &note).is_some() {
+        git_commit_note(&options.datadir, project, &note)
     }
 }
 
-fn run_notes(args: Args) {
-    let notes = get_filtered_notes(&args);
+fn run_notes(args: Args, options: Options) {
+    let notes = get_filtered_notes(&args, &options);
     println!("{}", format_projects_notes(notes));
 }
 
-fn run_timestamps(args: Args) {
-    let notes = get_filtered_notes(&args);
+fn run_timestamps(args: Args, options: Options) {
+    let notes = get_filtered_notes(&args, &options);
 
     for (project, notes) in notes {
         println!("{}", project);
@@ -233,11 +240,8 @@ fn run_timestamps(args: Args) {
     }
 }
 
-fn run_projects(args: Args) {
-    trace!("run_projects args: {:#?}", args);
-    let datadir = get_datadir(&args);
-
-    let projects = get_projects(&datadir, args.value_of("project"));
+fn run_projects(args: Args, options: Options) {
+    let projects = get_projects(&options.datadir, args.value_of("project"));
     trace!("projects: {:#?}", projects);
 
     for project in projects {
@@ -245,13 +249,13 @@ fn run_projects(args: Args) {
     }
 }
 
-fn run_repo(args: Args) {
+fn run_repo(args: Args, options: Options) {
     if let Some(command) = args.subcommand.clone() {
         match command.name.as_str() {
-            "init" => run_repo_init(&command.matches),
-            "pull" => run_repo_pull(&command.matches),
-            "push" => run_repo_push(&command.matches),
-            "sync" => run_repo_sync(&command.matches),
+            "init" => run_repo_init(&args, options),
+            "pull" => run_repo_pull(options),
+            "push" => run_repo_push(options),
+            "sync" => run_repo_sync(options),
             _ => {
                 error!("do not know what to do with this command: {}",
                        command.name.as_str())
@@ -260,23 +264,21 @@ fn run_repo(args: Args) {
     }
 }
 
-fn run_repo_pull(args: &Args) {
-    let datadir = get_datadir(args);
-    githelper::pull(datadir.as_path()).expect("can not pull from repo");
+fn run_repo_pull(options: Options) {
+    githelper::pull(options.datadir.as_path()).expect("can not pull from repo");
 }
 
-fn run_repo_push(args: &Args) {
-    let datadir = get_datadir(args);
-    githelper::push(datadir.as_path()).expect("can not push to repo");
+fn run_repo_push(options: Options) {
+    githelper::push(options.datadir.as_path()).expect("can not push to repo");
 }
 
-fn run_repo_sync(args: &Args) {
-    let datadir = get_datadir(args);
-    githelper::sync(datadir.as_path()).expect("can not sync repo");
+fn run_repo_sync(options: Options) {
+    githelper::sync(options.datadir.as_path()).expect("can not sync repo");
 }
 
-fn run_repo_init(args: &Args) {
-    let datadir = get_datadir(args);
+fn run_repo_init(args: &Args, options: Options) {
+    let datadir = options.datadir;
+
     match args.value_of("remote") {
         Some(remote) => {
             match githelper::clone(datadir.as_path(), remote) {
@@ -297,9 +299,9 @@ fn run_repo_init(args: &Args) {
     }
 }
 
-fn run_search(args: Args) {
+fn run_search(args: Args, options: Options) {
     let text = args.value_of("text").unwrap();
-    let notes = get_filtered_notes(&args);
+    let notes = get_filtered_notes(&args, &options);
 
     let re = Regex::new(text).unwrap();
 
@@ -350,12 +352,12 @@ fn run_search(args: Args) {
     println!("{}", out);
 }
 
-fn run_timeline(args: Args) {
-    let notes = get_filtered_notes(&args);
+fn run_timeline(args: Args, options: Options) {
+    let notes = get_filtered_notes(&args, &options);
     println!("{}", get_timeline_for_notes(notes));
 }
 
-fn run_webapp(_: Args) {
+fn run_webapp() {
     rocket::ignite()
         .mount("/",
                routes![webapp_index,
@@ -652,10 +654,9 @@ fn get_timeline(project: Option<&str>, datadir: &PathBuf) -> String {
     get_timeline_for_notes(project_notes)
 }
 
-fn get_filtered_notes(args: &Args) -> ProjectsNotes {
-    let datadir = get_datadir(args);
-    let projects = get_projects(&datadir, args.value_of("project"));
-    let project_notes = get_projects_notes(&datadir, projects);
+fn get_filtered_notes(args: &Args, options: &Options) -> ProjectsNotes {
+    let projects = get_projects(&options.datadir, args.value_of("project"));
+    let project_notes = get_projects_notes(&options.datadir, projects);
 
     let after_notes = match args.value_of("filter_after") {
         Some(filter) => {
@@ -727,7 +728,7 @@ fn get_projects_asiidoc_write_cache(format: fn(Project, &PathBuf) -> String,
     out
 }
 
-fn get_datadir(args: &Args) -> PathBuf {
+fn get_options(args: &Args) -> Options {
     let datadir = match args.value_of("datadir").unwrap() {
         "$XDG_DATA_HOME/lablog" => {
             let xdg = BaseDirectories::new().unwrap();
@@ -735,8 +736,11 @@ fn get_datadir(args: &Args) -> PathBuf {
         }
         _ => PathBuf::from(args.value_of("datadir").unwrap()),
     };
-    debug!("datadir: {:?}", datadir);
-    datadir
+
+    let options = Options { datadir: datadir };
+
+    debug!("options: {:?}", options);
+    options
 }
 
 fn get_datadir2() -> PathBuf {

@@ -36,7 +36,6 @@ args:
         default_value: info
         value_name: level
         possible_values: [ trace, debug, info, warn, error ]
-        global: true
     - datadir:
         help: the path to the lablog data dir
         long: datadir
@@ -44,7 +43,6 @@ args:
         takes_value: true
         default_value: "$XDG_DATA_HOME/lablog"
         value_name: path
-        global: true
 subcommands:
   - note:
       about: add a note to lablog
