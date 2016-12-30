@@ -25,7 +25,7 @@ use walkdir::WalkDir;
 
 const PROJECT_SEPPERATOR: &'static str = ".";
 
-pub type Project<'a> = Option<&'a str>;
+pub type Project = Option<String>;
 pub type Projects = DataSet<String>;
 
 pub type ProjectsNotes = DataMap<String, Notes>;
@@ -56,7 +56,7 @@ impl PartialEq for Note {
 }
 
 pub fn git_commit_note(datadir: &PathBuf, project: Project, note: &Note) {
-    let project_path = normalize_project_path(project, "csv");
+    let project_path = normalize_project_path(project.clone(), "csv");
 
     githelper::add(datadir, Path::new(project_path.as_str()))
         .expect("can not add project file changes to git");
@@ -133,7 +133,7 @@ pub fn get_projects(datadir: &PathBuf, project: Project) -> Projects {
 
     match project {
         Some(project) => {
-            let re = Regex::new(project).unwrap();
+            let re = Regex::new(project.as_str()).unwrap();
             projects.into_iter().filter(|project| re.is_match(project)).collect()
         }
         None => projects,
@@ -148,7 +148,7 @@ pub fn file_to_string(filepath: &Path) -> IOResult<String> {
     Ok(s)
 }
 
-pub fn get_timeline(project: Option<&str>, datadir: &PathBuf) -> String {
+pub fn get_timeline(project: Project, datadir: &PathBuf) -> String {
     let projects = get_projects(datadir, project);
     let project_notes = get_projects_notes(datadir, projects);
 
@@ -192,7 +192,7 @@ pub fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNote
 
     for project in projects {
         let mut project_path = datadir.clone();
-        project_path.push(normalize_project_path(Some(project.as_str()), "csv"));
+        project_path.push(normalize_project_path(Some(project.clone()), "csv"));
 
         let notes = get_notes(project_path);
         map.insert(project, notes);
@@ -216,7 +216,7 @@ fn get_notes(project_path: PathBuf) -> Notes {
     map
 }
 
-pub fn format_notes(project: Option<&str>, datadir: &PathBuf) -> String {
+pub fn format_notes(project: Project, datadir: &PathBuf) -> String {
     let projects = get_projects(datadir, project);
     let notes = get_projects_notes(datadir, projects);
 
@@ -302,4 +302,41 @@ pub fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
                                   "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{}-01-01 00:00:00", input).as_str(),
                                   "%Y-%m-%d %H:%M:%S"))
+}
+
+pub fn get_parent(project: Project) -> Project {
+    if project.is_none() {
+        return None;
+    }
+
+    let unwrap = project.unwrap();
+    let mut split: Vec<&str> = unwrap.split('.').collect();
+
+    let len = split.len();
+    if len <= 1 {
+        return None;
+    }
+
+    split.truncate(len - 1);
+
+    Some(split.join("."))
+}
+
+#[test]
+fn test_get_parent() {
+    assert_eq!(None, get_parent(None));
+
+    assert_eq!(None, get_parent(Some(String::from("athaller"))));
+
+    assert_eq!(None, get_parent(Some(String::new())));
+
+    assert_eq!(Some(String::from("athaller")),
+               get_parent(Some(String::from("athaller.test"))));
+
+    assert_eq!(Some(String::from("athaller.test")),
+               get_parent(Some(String::from("athaller.test.test"))));
+
+    assert_eq!(Some(String::from("")), get_parent(Some(String::from("."))));
+    assert_eq!(Some(String::from(".")),
+               get_parent(Some(String::from(".."))));
 }
