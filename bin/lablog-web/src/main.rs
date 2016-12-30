@@ -88,6 +88,7 @@ struct NotesContext {
     add_note: Option<String>,
     formatted_notes: String,
     parent: Option<String>,
+    children: Option<Projects>,
     title: String,
 }
 
@@ -137,6 +138,7 @@ fn webapp_timeline() -> Template {
 
     let context = NotesContext {
         add_note: None,
+        children: None,
         formatted_notes: formatted,
         parent: None,
         title: String::from("Timeline"),
@@ -156,6 +158,7 @@ fn webapp_notes_all() -> Template {
 
     let context = NotesContext {
         add_note: None,
+        children: None,
         formatted_notes: formatted,
         parent: None,
         title: String::from("All Notes"),
@@ -175,6 +178,7 @@ fn webapp_notes(project: String) -> Template {
 
     let context = NotesContext {
         add_note: Some(project.clone()),
+        children: lablog_lib::get_children(&datadir, Some(project.clone())),
         formatted_notes: formatted,
         parent: lablog_lib::get_parent(Some(project.clone())),
         title: project.clone(),
@@ -204,6 +208,10 @@ fn webapp_notes_legacy(project: String) -> Template {
     };
 
     let context = NotesContext {
+        children: match project.as_str() {
+            "_" => None,
+            _ => lablog_lib::get_children(&datadir, Some(project.clone())),
+        },
         parent: match project.as_str() {
             "_" => None,
             _ => lablog_lib::get_parent(Some(project.clone())),

@@ -340,3 +340,10 @@ fn test_get_parent() {
     assert_eq!(Some(String::from(".")),
                get_parent(Some(String::from(".."))));
 }
+
+pub fn get_children(datadir: &PathBuf, project: Project) -> Option<Projects> {
+    match project {
+        None => None,
+        Some(project) => Some(get_projects(datadir, Some(format!("{}\\.[^.]*$", project)))),
+    }
+}

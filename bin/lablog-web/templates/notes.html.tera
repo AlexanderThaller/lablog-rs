@@ -11,7 +11,7 @@
   </head>
   <body>
     <nav>
-      <a href="/">Back</a>
+      <a href="/">Projects</a>
       <a href="/note/{% if add_note %}{{ add_note }}{% endif %}">Add Note</a>
       {% if parent %}<a href="/notes/{{ parent }}">Parent Project</a>{% endif %}
     </nav>
@@ -21,6 +21,17 @@
     <header>
       <h1>{{ title }}</h1>
     </header>
+
+    {% if children %}
+    <section>
+      <h2>Children</h2>
+      <ul>
+        {% for child in children %}
+        <li><a href="/notes/{{ child }}">{{ child }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
 
     <article>
       {{ formatted_notes }}

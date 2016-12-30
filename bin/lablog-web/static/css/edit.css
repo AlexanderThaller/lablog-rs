@@ -5,6 +5,9 @@ body {
 	article {
 		padding-left: 4em;
 	}
+	section{
+		padding-left: 4em;
+	}
 }
 
 input{
@@ -23,10 +26,14 @@ article {
 	max-width: 35em;
 }
 #toctitle {
-	font-size: 19px;
-}
-#toc {
-	font-size: 16px;
+    display: block;
+    font-size: 28.5px;
+    line-height: 24px;
+    -webkit-margin-before: 0.83em;
+    -webkit-margin-after: 0.83em;
+    -webkit-margin-start: 0px;
+    -webkit-margin-end: 0px;
+    font-weight: bold;
 }
 img,object,embed {
 	max-width: 95%;
