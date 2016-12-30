@@ -34,3 +34,6 @@ that
 
 = lablog-web
 BUG: not invalidating cache of renderd asciidoc if subproject has new notes which leads to the new note from the subproject not showing up in the parent project
+
+= lablog-lib
+BUG: children will not be displayed if it has no notes should be added if it there are grandchildren or grandgrandchildren

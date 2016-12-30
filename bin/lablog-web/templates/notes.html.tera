@@ -13,7 +13,7 @@
     <nav>
       <a href="/">Projects</a>
       <a href="/note/{% if add_note %}{{ add_note }}{% endif %}">Add Note</a>
-      {% if parent %}<a href="/notes/{{ parent }}">Parent Project</a>{% endif %}
+      {% if parent is string %}<a href="/notes/{{ parent }}">Parent Project</a>{% endif %}
     </nav>
 
     <hr>

@@ -313,8 +313,12 @@ pub fn get_parent(project: Project) -> Project {
     let mut split: Vec<&str> = unwrap.split('.').collect();
 
     let len = split.len();
-    if len <= 1 {
+    if len == 0 {
         return None;
+    }
+
+    if len == 1 {
+        return Some(String::from(""));
     }
 
     split.truncate(len - 1);
@@ -326,9 +330,10 @@ pub fn get_parent(project: Project) -> Project {
 fn test_get_parent() {
     assert_eq!(None, get_parent(None));
 
-    assert_eq!(None, get_parent(Some(String::from("athaller"))));
+    assert_eq!(Some(String::from("")),
+               get_parent(Some(String::from("athaller"))));
 
-    assert_eq!(None, get_parent(Some(String::new())));
+    assert_eq!(Some(String::from("")), get_parent(Some(String::new())));
 
     assert_eq!(Some(String::from("athaller")),
                get_parent(Some(String::from("athaller.test"))));
@@ -336,7 +341,10 @@ fn test_get_parent() {
     assert_eq!(Some(String::from("athaller.test")),
                get_parent(Some(String::from("athaller.test.test"))));
 
+    assert_eq!(Some(String::from("")), get_parent(Some(String::from(""))));
+
     assert_eq!(Some(String::from("")), get_parent(Some(String::from("."))));
+
     assert_eq!(Some(String::from(".")),
                get_parent(Some(String::from(".."))));
 }
