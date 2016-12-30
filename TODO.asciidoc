@@ -29,3 +29,5 @@ parameter
 * sepperate webinterface from cli interface and use a shared library
 * make note formatting so that notes are ordered under dates or something to
 make it easier to browse them
+* add api to lablog-web which will return projects or raw notes and stuff like
+that
