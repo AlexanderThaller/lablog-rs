@@ -26,20 +26,20 @@
       <br>
 
       {% if selected_project %}
-      <input name="project" list="projects" style="width: 90%" placeholder="Project" value="{{ selected_project }}">
+      <input name="project" list="projects" placeholder="Project" value="{{ selected_project }}">
       {% else %}
-      <input name="project" list="projects" style="width: 90%" placeholder="Project">
+      <input name="project" list="projects" placeholder="Project">
       {% endif %}
 
       <br/>
       <br/>
 
-      <textarea name="note" style="width: 90%; height: 500px" placeholder="Note"></textarea>
+      <textarea name="note" style="height: 500px" placeholder="Note"></textarea>
 
       <br/>
       <br/>
 
-      <input type="submit" style="width: 150px; height: 30px">
+      <input type="submit" style="width: 150px; height: 30px" value="Add Note">
     </form>
   </body>
 </html>

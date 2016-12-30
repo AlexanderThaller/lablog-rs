@@ -1,3 +1,4 @@
 [global]
 address = "0.0.0.0"
+datadir = "/home/athaller/.local/share/lablog_priv"
 port = 18080

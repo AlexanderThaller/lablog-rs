@@ -7,6 +7,18 @@ body {
 	}
 }
 
+input{
+  font-size: 19px;
+  height: 19px;
+  width: 90%;
+}
+
+textarea{
+  font-size: 19px;
+  height: 19px;
+  width: 90%;
+}
+
 article {
 	max-width: 35em;
 }
