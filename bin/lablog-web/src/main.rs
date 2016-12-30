@@ -405,8 +405,6 @@ fn note_from_form(form: &NotesForm) -> Note {
 }
 
 fn format_asciidoc(input: String) -> String {
-    println!("input: {}", input);
-
     let tmpdir = TempDir::new("lablog-web_tmp")
         .expect("can not create a new tmpdir for asciiformatting");
     let tmppath = tmpdir.path().join("output.asciidoc");
