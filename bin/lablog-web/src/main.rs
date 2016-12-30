@@ -170,11 +170,14 @@ fn webapp_notes_all() -> Template {
 #[get("/notes/<project>")]
 fn webapp_notes(project: String) -> Template {
     let datadir = get_datadir();
-    let formatted = format_or_cached_modified(format_notes,
-                                              Some(project.clone()),
-                                              &datadir,
-                                              Some(project.clone()),
-                                              false);
+    // TODO: Find a way to cache notes based on modified date again which also works for aggregated
+    // views like the athaller projects that doesnt have any notes by itself but children projects
+    // with notes.
+    let formatted = format_or_cached_git(format_notes,
+                                         Some(project.clone()),
+                                         &datadir,
+                                         Some(project.clone()),
+                                         false);
 
     let context = NotesContext {
         add_note: Some(project.clone()),
@@ -199,11 +202,11 @@ fn webapp_notes_legacy(project: String) -> Template {
                                  false)
         }
         _ => {
-            format_or_cached_modified(format_notes,
-                                      Some(project.clone()),
-                                      &datadir,
-                                      Some(project.clone()),
-                                      false)
+            format_or_cached_git(format_notes,
+                                 Some(project.clone()),
+                                 &datadir,
+                                 Some(project.clone()),
+                                 false)
         }
     };
 
