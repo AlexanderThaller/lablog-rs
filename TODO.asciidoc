@@ -31,3 +31,6 @@ parameter
 make it easier to browse them
 * add api to lablog-web which will return projects or raw notes and stuff like
 that
+
+= lablog-web
+BUG: not invalidating cache of renderd asciidoc if subproject has new notes which leads to the new note from the subproject not showing up in the parent project

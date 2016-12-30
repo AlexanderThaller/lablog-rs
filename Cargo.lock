@@ -1,6 +1,6 @@
 [root]
 name = "lablog_lib"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "csv 0.14.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -230,7 +230,7 @@ dependencies = [
  "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "githelper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lablog_lib 0.1.0",
+ "lablog_lib 0.2.0",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "loggerv 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.80 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -244,7 +244,7 @@ version = "0.1.0"
 dependencies = [
  "chrono 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "githelper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lablog_lib 0.1.0",
+ "lablog_lib 0.2.0",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocket_codegen 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

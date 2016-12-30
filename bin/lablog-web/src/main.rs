@@ -77,17 +77,18 @@ struct IndexContext {
     projects: Projects,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize,Debug)]
 struct NoteContext {
     projects: Projects,
     selected_project: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize,Debug)]
 struct NotesContext {
-    title: String,
     add_note: Option<String>,
     formatted_notes: String,
+    parent: Option<String>,
+    title: String,
 }
 
 #[derive(FromForm,Debug)]
@@ -128,12 +129,17 @@ fn webapp_index() -> Template {
 #[get("/timeline")]
 fn webapp_timeline() -> Template {
     let datadir = get_datadir();
-    let formatted = format_or_cached_git(get_timeline, None, &datadir, Some("_timeline"), false);
+    let formatted = format_or_cached_git(get_timeline,
+                                         None,
+                                         &datadir,
+                                         Some(String::from("_timeline")),
+                                         false);
 
     let context = NotesContext {
-        title: String::from("Timeline"),
         add_note: None,
         formatted_notes: formatted,
+        parent: None,
+        title: String::from("Timeline"),
     };
 
     Template::render("notes", &context)
@@ -142,48 +148,73 @@ fn webapp_timeline() -> Template {
 #[get("/notes")]
 fn webapp_notes_all() -> Template {
     let datadir = get_datadir();
-    let formatted = format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false);
+    let formatted = format_or_cached_git(format_notes,
+                                         None,
+                                         &datadir,
+                                         Some(String::from("_notes")),
+                                         false);
 
     let context = NotesContext {
-        title: String::from("All Notes"),
         add_note: None,
         formatted_notes: formatted,
+        parent: None,
+        title: String::from("All Notes"),
     };
 
     Template::render("notes", &context)
 }
 
 #[get("/notes/<project>")]
-fn webapp_notes(project: &str) -> Template {
+fn webapp_notes(project: String) -> Template {
     let datadir = get_datadir();
-    let formatted =
-        format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false);
+    let formatted = format_or_cached_modified(format_notes,
+                                              Some(project.clone()),
+                                              &datadir,
+                                              Some(project.clone()),
+                                              false);
 
     let context = NotesContext {
-        title: String::from(project),
-        add_note: Some(String::from(project)),
+        add_note: Some(project.clone()),
         formatted_notes: formatted,
+        parent: lablog_lib::get_parent(Some(project.clone())),
+        title: project.clone(),
     };
 
     Template::render("notes", &context)
 }
 
 #[get("/show/entries/<project>")]
-fn webapp_notes_legacy(project: &str) -> Template {
+fn webapp_notes_legacy(project: String) -> Template {
     let datadir = get_datadir();
-    let formatted = match project {
-        "_" => format_or_cached_git(format_notes, None, &datadir, Some("_notes"), false),
-        _ => format_or_cached_modified(format_notes, Some(project), &datadir, Some(project), false),
+    let formatted = match project.as_str() {
+        "_" => {
+            format_or_cached_git(format_notes,
+                                 None,
+                                 &datadir,
+                                 Some(String::from("_notes")),
+                                 false)
+        }
+        _ => {
+            format_or_cached_modified(format_notes,
+                                      Some(project.clone()),
+                                      &datadir,
+                                      Some(project.clone()),
+                                      false)
+        }
     };
 
     let context = NotesContext {
-        title: match project {
-            "_" => String::from("All Notes"),
-            _ => String::from(project),
-        },
-        add_note: match project {
+        parent: match project.as_str() {
             "_" => None,
-            _ => Some(String::from(project)),
+            _ => lablog_lib::get_parent(Some(project.clone())),
+        },
+        title: match project.as_str() {
+            "_" => String::from("All Notes"),
+            _ => project.clone(),
+        },
+        add_note: match project.as_str() {
+            "_" => None,
+            _ => Some(project.clone()),
         },
         formatted_notes: formatted,
     };
@@ -211,7 +242,7 @@ fn webapp_note_project(project: String) -> Template {
 
     let context = NoteContext {
         projects: projects,
-        selected_project: Some(project),
+        selected_project: Some(project.clone()),
     };
 
     Template::render("note", &context)
@@ -223,8 +254,8 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
     let project = noteform.get().project.as_str();
 
     let datadir = get_datadir();
-    if write_note(&datadir, Some(project), &note).is_some() {
-        git_commit_note(&datadir, Some(project), &note)
+    if write_note(&datadir, Some(String::from(project)), &note).is_some() {
+        git_commit_note(&datadir, Some(String::from(project)), &note)
     }
 
     if let Err(err) = githelper::sync(datadir.as_path()) {
@@ -277,7 +308,7 @@ fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
         return format(project, datadir);
     }
 
-    match cache_find_file(cachefile) {
+    match cache_find_file(cachefile.clone()) {
         None => {
             debug!("no cachefile will generate new file");
             get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
@@ -288,7 +319,7 @@ fn format_or_cached_modified(format: fn(Project, &PathBuf) -> String,
                 .expect("can not decode cache file");
 
             let mut project_path = datadir.clone();
-            project_path.push(normalize_project_path(project, "csv"));
+            project_path.push(normalize_project_path(project.clone(), "csv"));
             trace!("project_path: {:#?}", project_path);
 
             let metadata = File::open(&project_path)
@@ -328,7 +359,7 @@ fn format_or_cached_git(format: fn(Project, &PathBuf) -> String,
         return format(project, datadir);
     }
 
-    match cache_find_file(cachefile) {
+    match cache_find_file(cachefile.clone()) {
         None => {
             debug!("no cachefile will generate new file");
             get_projects_asiidoc_write_cache(format, project, datadir, &cache_place_file(cachefile))
@@ -356,7 +387,7 @@ fn get_projects_asiidoc_write_cache(format: fn(Project, &PathBuf) -> String,
                                     datadir: &PathBuf,
                                     cachefile: &PathBuf)
                                     -> String {
-    let asciidoc = format(project, datadir);
+    let asciidoc = format(project.clone(), datadir);
     let out = format_asciidoc(asciidoc);
 
     let modified = match project {
@@ -431,7 +462,7 @@ fn format_asciidoc(input: String) -> String {
 fn cache_find_file(project: Project) -> Option<PathBuf> {
     let xdg = BaseDirectories::new().expect("can not get new xdg context for finding a cachefile");
     let mut cache_path = PathBuf::from("lablog-web");
-    cache_path.push(normalize_project_path(project, "cache"));
+    cache_path.push(normalize_project_path(project.clone(), "cache"));
 
     let cachefile = xdg.find_cache_file(&cache_path);
     debug!("found cachefile: {:#?} from project {:#?}",
@@ -445,7 +476,7 @@ fn cache_place_file(project: Project) -> PathBuf {
     let xdg = BaseDirectories::new()
         .expect("can not open a new xdg context for writing a cachefile");
     let mut cache_path = PathBuf::from("lablog-web");
-    cache_path.push(normalize_project_path(project, "cache"));
+    cache_path.push(normalize_project_path(project.clone(), "cache"));
     let cachefile = xdg.place_cache_file(&cache_path).expect("can not place a new cachefile");
 
     debug!("put cachefile: {:#?} from project {:#?}",
