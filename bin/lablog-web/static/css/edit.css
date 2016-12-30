@@ -1,14 +1,20 @@
+@media only screen and (min-width: 500px) {
+body {
+		padding-left: 1em;
+}
+	article {
+		padding-left: 4em;
+	}
+}
+
+article {
+	max-width: 35em;
+}
 #toctitle {
 	font-size: 19px;
 }
-
 #toc {
-  font-size: 16px;
-}
-
-img,object,embed {
-	max-width: 95%;
-	height: auto;
+	font-size: 16px;
 }
 img,object,embed {
 	max-width: 95%;
@@ -23,7 +29,7 @@ pre,xmp,plaintext,listing {
 	font-size: 16px;
 	line-height: 20px;
 	max-width: 95%;
-  padding-left: 1em;
+	padding-left: 1em;
 }
 p {
 	-ms-hyphens: auto;

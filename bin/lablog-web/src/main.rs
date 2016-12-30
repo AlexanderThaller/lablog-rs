@@ -414,6 +414,8 @@ fn format_asciidoc(input: String) -> String {
     file.write_all(input.as_bytes()).expect("can not write to asciiformatting file");
 
     let output = Command::new("asciidoctor")
+        .arg("--safe-mode")
+        .arg("safe")
         .arg("--no-header-footer")
         .arg("--out-file")
         .arg("-")
