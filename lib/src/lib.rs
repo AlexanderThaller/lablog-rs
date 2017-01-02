@@ -352,6 +352,6 @@ fn test_get_parent() {
 pub fn get_children(datadir: &PathBuf, project: Project) -> Option<Projects> {
     match project {
         None => None,
-        Some(project) => Some(get_projects(datadir, Some(format!("{}\\.[^.]*$", project)))),
+        Some(project) => Some(get_projects(datadir, Some(format!("^{}\\.[^.]*$", project)))),
     }
 }
