@@ -392,3 +392,69 @@ fn test_get_children() {
     assert_eq!(Some(children),
                get_children(projects.clone(), Some(String::from("children"))));
 }
+
+pub fn archive_project(datadir: &PathBuf, project: Project) {
+    let mut old_path = datadir.clone();
+    old_path.push(normalize_project_path(project.clone(), "csv"));
+
+    let new_path = get_archive_path(datadir, project.clone());
+    fs::create_dir_all(new_path.parent().expect("can not get parent directory of archive path"))
+        .expect("can not create folder for archive path");
+
+    let mut file = match OpenOptions::new().append(true).open(&new_path) {
+        Ok(file) => file,
+        Err(_) => {
+            OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(&new_path)
+                .expect("can not open archive file")
+        }
+    };
+
+    let old_data = file_to_string(&old_path).expect("can not read data from project for archiving");
+
+    file.write_all(old_data.as_bytes()).expect("can not write to archive file");
+
+    fs::remove_file(old_path.clone()).expect("can not remove old file after archiving");
+
+    githelper::add(datadir, Path::new(new_path.as_path()))
+        .expect("can not add project archive file to git");
+
+    githelper::add(datadir, Path::new(old_path.as_path()))
+        .expect("can not add removed project file to git");
+
+    let commit_message = format!("{} - {} - archived", Local::now(), project.unwrap());
+
+    githelper::commit(datadir, commit_message.as_str())
+        .expect("can not commit archive move to repo");
+}
+
+fn get_archive_path(datadir: &PathBuf, project: Project) -> PathBuf {
+    let norm_path = normalize_project_path(project, "csv");
+
+    let mut archive_path = datadir.clone();
+    archive_path.push(".archive");
+    archive_path.push(norm_path);
+
+    archive_path
+}
+
+#[test]
+fn test_get_archive_path() {
+    let datadir = Path::new("/tmp").to_path_buf();
+
+    {
+        let project = Some(String::from("test"));
+        let expected = Path::new("/tmp/.archive/test.csv").to_path_buf();
+
+        assert_eq!(expected, get_archive_path(&datadir, project));
+    }
+
+    {
+        let project = Some(String::from("test.test2"));
+        let expected = Path::new("/tmp/.archive/test/test2.csv").to_path_buf();
+
+        assert_eq!(expected, get_archive_path(&datadir, project));
+    }
+}

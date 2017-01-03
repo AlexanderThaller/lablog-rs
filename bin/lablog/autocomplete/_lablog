@@ -315,6 +315,23 @@ _arguments -s -S -C \
 "1:: :_lablog_search_commands" \
 && ret=0
 ;;
+(archive)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_archive_commands" \
+&& ret=0
+;;
 (help)
 _arguments -s -S -C \
 "-h[Prints help information]" \
@@ -379,11 +396,19 @@ _lablog_commands() {
 "timeline:list notes sorted by time" \
 "repo:interact with the notes repository" \
 "search:search for given string in notes" \
+"archive:archive given project" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
     )
     _describe -t commands 'lablog commands' commands "$@"
+}
+(( $+functions[_lablog_archive_commands] )) ||
+_lablog_archive_commands() {
+    local commands; commands=(
+        "PROJECT:the project to archive" \
+    )
+    _describe -t commands 'lablog archive commands' commands "$@"
 }
 (( $+functions[_lablog_dates_commands] )) ||
 _lablog_dates_commands() {

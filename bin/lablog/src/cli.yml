@@ -215,3 +215,11 @@ subcommands:
             long: after
             short: A
             value_name: timestamp
+  - archive:
+      about: archive given project
+      args:
+        - project:
+            help: the project to archive
+            takes_value: true
+            value_name: project
+            index: 1

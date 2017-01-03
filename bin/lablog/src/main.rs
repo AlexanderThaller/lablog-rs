@@ -49,6 +49,7 @@ use lablog_lib::Note;
 use lablog_lib::ProjectsNotes;
 use lablog_lib::try_multiple_time_parser;
 use lablog_lib::write_note;
+use lablog_lib::archive_project;
 use log::LogLevel;
 use regex::Regex;
 use std::collections::BTreeMap as DataMap;
@@ -100,6 +101,7 @@ fn run(args: Args, options: Options) {
                 "repo" => run_repo(command.matches, options),
                 "search" => run_search(command.matches, options),
                 "timeline" => run_timeline(command.matches, options),
+                "archive" => run_archive(command.matches, options),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -184,9 +186,14 @@ fn run_timestamps(args: Args, options: Options) {
     }
 }
 
+fn run_archive(args: Args, options: Options) {
+    let project = Some(String::from(args.value_of("project").unwrap()));
+    archive_project(&options.datadir, project);
+}
+
 fn run_projects(args: Args, options: Options) {
     let projects = get_projects(&options.datadir,
-                                Some(String::from(args.value_of("project").unwrap())));
+                                Some(String::from(args.value_of("project").unwrap_or(""))));
     trace!("projects: {:#?}", projects);
 
     for project in projects {
