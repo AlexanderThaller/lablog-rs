@@ -49,6 +49,7 @@ use lablog_lib::Note;
 use lablog_lib::Project;
 use lablog_lib::Projects;
 use lablog_lib::write_note;
+use lablog_lib::archive_project;
 use rocket::config;
 use rocket_contrib::Template;
 use rocket::request::Form;
@@ -113,6 +114,7 @@ fn main() {
                        webapp_notes_legacy,
                        webapp_note,
                        webapp_note_project,
+                       webapp_archive_project,
                        webapp_note_add,
                        webapp_static])
         .launch();
@@ -261,6 +263,16 @@ fn webapp_note_project(project: String) -> Template {
     };
 
     Template::render("note", &context)
+}
+
+#[get("/archive/<project>")]
+fn webapp_archive_project(project: String) -> Redirect {
+    let datadir = get_datadir();
+    let projects = get_projects(&datadir, None);
+
+    archive_project(&datadir, projects, Some(project), true);
+
+    Redirect::to("/")
 }
 
 #[post("/note_add", data="<noteform>")]
