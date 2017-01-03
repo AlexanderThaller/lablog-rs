@@ -270,9 +270,12 @@ fn webapp_archive_project(project: String) -> Redirect {
     let datadir = get_datadir();
     let projects = get_projects(&datadir, None);
 
-    archive_project(&datadir, projects, Some(project), true);
+    archive_project(&datadir, projects, Some(project.clone()), true);
 
-    Redirect::to("/")
+    match lablog_lib::get_parent(Some(project)) {
+        Some(parent) => Redirect::to(format!("/notes/{}", parent).as_str()),
+        None => Redirect::to("/"),
+    }
 }
 
 #[post("/note_add", data="<noteform>")]
