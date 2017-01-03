@@ -393,9 +393,23 @@ fn test_get_children() {
                get_children(projects.clone(), Some(String::from("children"))));
 }
 
-pub fn archive_project(datadir: &PathBuf, project: Project) {
+pub fn archive_project(datadir: &PathBuf, projects: Projects, project: Project, recursive: bool) {
+    if recursive {
+        let children = get_children(projects.clone(), project.clone());
+
+        if children.is_some() {
+            for project in children.unwrap() {
+                archive_project(datadir, projects.clone(), Some(project), recursive);
+            }
+        }
+    }
+
     let mut old_path = datadir.clone();
     old_path.push(normalize_project_path(project.clone(), "csv"));
+
+    if !old_path.exists() {
+        return;
+    }
 
     let new_path = get_archive_path(datadir, project.clone());
     fs::create_dir_all(new_path.parent().expect("can not get parent directory of archive path"))

@@ -94,7 +94,7 @@ _lablog() {
             ;;
         
         lablog_archive)
-            opts=" -h -V  --help --version  <project> "
+            opts=" -r -h -V  --recursive --help --version  <project> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0

@@ -188,7 +188,10 @@ fn run_timestamps(args: Args, options: Options) {
 
 fn run_archive(args: Args, options: Options) {
     let project = Some(String::from(args.value_of("project").unwrap()));
-    archive_project(&options.datadir, project);
+    let recursive = args.is_present("recursive");
+
+    let projects = get_projects(&options.datadir, project.clone());
+    archive_project(&options.datadir, projects, project, recursive);
 }
 
 fn run_projects(args: Args, options: Options) {

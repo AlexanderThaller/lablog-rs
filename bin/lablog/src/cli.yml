@@ -223,3 +223,7 @@ subcommands:
             takes_value: true
             value_name: project
             index: 1
+        - recursive:
+            help: archive the project and all subprojects
+            long: recursive
+            short: r

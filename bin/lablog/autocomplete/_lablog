@@ -317,6 +317,8 @@ _arguments -s -S -C \
 ;;
 (archive)
 _arguments -s -S -C \
+"-r[archive the project and all subprojects]" \
+"--recursive[archive the project and all subprojects]" \
 "-h[Prints help information]" \
 "--help[Prints help information]" \
 "-V[Prints version information]" \

@@ -103,6 +103,7 @@ complete -c lablog -n "__fish_using_command lablog search" -s h -l help -d "Prin
 complete -c lablog -n "__fish_using_command lablog search" -s V -l version -d "Prints version information"
 complete -c lablog -n "__fish_using_command lablog search" -s h -l help -d "Prints help information"
 complete -c lablog -n "__fish_using_command lablog search" -s V -l version -d "Prints version information"
+complete -c lablog -n "__fish_using_command lablog archive" -s r -l recursive -d "archive the project and all subprojects"
 complete -c lablog -n "__fish_using_command lablog archive" -s h -l help -d "Prints help information"
 complete -c lablog -n "__fish_using_command lablog archive" -s V -l version -d "Prints version information"
 complete -c lablog -n "__fish_using_command lablog archive" -s h -l help -d "Prints help information"
