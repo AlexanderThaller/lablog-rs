@@ -179,9 +179,11 @@ fn webapp_notes(project: String) -> Template {
                                          Some(project.clone()),
                                          false);
 
+    let projects = get_projects(&datadir, Some(project.clone()));
+
     let context = NotesContext {
         add_note: Some(project.clone()),
-        children: lablog_lib::get_children(&datadir, Some(project.clone())),
+        children: lablog_lib::get_children(projects, Some(project.clone())),
         formatted_notes: formatted,
         parent: lablog_lib::get_parent(Some(project.clone())),
         title: project.clone(),
@@ -210,10 +212,12 @@ fn webapp_notes_legacy(project: String) -> Template {
         }
     };
 
+    let projects = get_projects(&datadir, Some(project.clone()));
+
     let context = NotesContext {
         children: match project.as_str() {
             "_" => None,
-            _ => lablog_lib::get_children(&datadir, Some(project.clone())),
+            _ => lablog_lib::get_children(projects, Some(project.clone())),
         },
         parent: match project.as_str() {
             "_" => None,

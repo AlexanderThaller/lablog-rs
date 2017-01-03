@@ -131,6 +131,10 @@ pub fn get_projects(datadir: &PathBuf, project: Project) -> Projects {
 
     trace!("projects: {:#?}", projects);
 
+    filter_projects(projects, project)
+}
+
+pub fn filter_projects(projects: Projects, project: Project) -> Projects {
     match project {
         Some(project) => {
             let re = Regex::new(project.as_str()).unwrap();
@@ -349,9 +353,42 @@ fn test_get_parent() {
                get_parent(Some(String::from(".."))));
 }
 
-pub fn get_children(datadir: &PathBuf, project: Project) -> Option<Projects> {
-    match project {
-        None => None,
-        Some(project) => Some(get_projects(datadir, Some(format!("^{}\\.[^.]*$", project)))),
+pub fn get_children(projects: Projects, project: Project) -> Option<Projects> {
+    let projects = match project {
+        None => DataSet::new(),
+        Some(project) => filter_projects(projects, Some(format!("^{}\\.[^.]*$", project))),
+    };
+
+    if projects.len() == 0 {
+        return None;
     }
+
+    Some(projects)
+}
+
+#[test]
+fn test_get_children() {
+    let mut projects = DataSet::new();
+    projects.insert(String::from("no_children"));
+
+    projects.insert(String::from("children"));
+    projects.insert(String::from("children.1"));
+    projects.insert(String::from("children.2"));
+    projects.insert(String::from("children.3"));
+    projects.insert(String::from("children.3.1"));
+    projects.insert(String::from("children.3.2"));
+    projects.insert(String::from("children.3.3"));
+
+    let mut children = DataSet::new();
+    children.insert(String::from("children.1"));
+    children.insert(String::from("children.2"));
+    children.insert(String::from("children.3"));
+
+    assert_eq!(None, get_children(projects.clone(), None));
+
+    assert_eq!(None,
+               get_children(projects.clone(), Some(String::from("no_children"))));
+
+    assert_eq!(Some(children),
+               get_children(projects.clone(), Some(String::from("children"))));
 }

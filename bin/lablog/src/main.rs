@@ -127,7 +127,7 @@ fn run_dates(args: Args, options: Options) {
 
 fn run_note(args: Args, options: Options) {
     trace!("run_note args: {:#?}", args);
-    let project = args.value_of("project");
+    let project = Some(String::from(args.value_of("project").unwrap()));
 
     let text = if args.is_present("editor") {
         string_from_editor()
@@ -160,8 +160,8 @@ fn run_note(args: Args, options: Options) {
         value: text.into(),
     };
 
-    if write_note(&options.datadir, project, &note).is_some() {
-        git_commit_note(&options.datadir, project, &note)
+    if write_note(&options.datadir, project.clone(), &note).is_some() {
+        git_commit_note(&options.datadir, project.clone(), &note)
     }
 }
 
@@ -185,7 +185,8 @@ fn run_timestamps(args: Args, options: Options) {
 }
 
 fn run_projects(args: Args, options: Options) {
-    let projects = get_projects(&options.datadir, args.value_of("project"));
+    let projects = get_projects(&options.datadir,
+                                Some(String::from(args.value_of("project").unwrap())));
     trace!("projects: {:#?}", projects);
 
     for project in projects {
@@ -264,8 +265,8 @@ fn run_search(args: Args, options: Options) {
                     debug!("find: {:#?}", find);
 
                     let mut replaced = String::from(line);
-                    replaced.insert_str(find.1, "\x1B[0m\x1B[0m");
-                    replaced.insert_str(find.0, "\x1B[1m\x1B[31m");
+                    replaced.insert_str(find.end(), "\x1B[0m\x1B[0m");
+                    replaced.insert_str(find.start(), "\x1B[1m\x1B[31m");
 
                     debug!("replaced: {}", replaced);
 
@@ -337,7 +338,8 @@ fn get_options(args: &Args) -> Options {
 }
 
 fn get_filtered_notes(args: &Args, options: &Options) -> ProjectsNotes {
-    let projects = get_projects(&options.datadir, args.value_of("project"));
+    let projects = get_projects(&options.datadir,
+                                Some(String::from(args.value_of("project").unwrap())));
     let project_notes = get_projects_notes(&options.datadir, projects);
 
     let after_notes = match args.value_of("filter_after") {
