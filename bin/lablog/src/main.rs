@@ -349,7 +349,7 @@ fn get_options(args: &Args) -> Options {
 
 fn get_filtered_notes(args: &Args, options: &Options) -> ProjectsNotes {
     let projects = get_projects(&options.datadir,
-                                Some(String::from(args.value_of("project").unwrap())));
+                                Some(String::from(args.value_of("project").unwrap_or(""))));
     let project_notes = get_projects_notes(&options.datadir, projects);
 
     let after_notes = match args.value_of("filter_after") {

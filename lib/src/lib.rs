@@ -359,7 +359,7 @@ pub fn get_children(projects: Projects, project: Project) -> Option<Projects> {
         Some(project) => filter_projects(projects, Some(format!("^{}\\.[^.]*$", project))),
     };
 
-    if projects.len() == 0 {
+    if projects.is_empty() {
         return None;
     }
 
