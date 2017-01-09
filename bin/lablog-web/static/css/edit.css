@@ -1,39 +1,42 @@
+
 @media only screen and (min-width: 500px) {
-body {
+
+	body {
 		padding-left: 1em;
-}
+	}
 	article {
 		padding-left: 4em;
 	}
-	section{
+	section {
 		padding-left: 4em;
 	}
 }
 
-input{
-  font-size: 19px;
-  height: 19px;
-  width: 90%;
+input {
+	font-size: 19px;
+	height: 19px;
+	width: 90%;
 }
-
-textarea{
-  font-size: 19px;
-  height: 19px;
-  width: 90%;
+textarea {
+	font-size: 19px;
+	height: 19px;
+	width: 90%;
 }
-
-article {
+.sectionbody {
 	max-width: 35em;
 }
+code{
+  font-size: 16px;
+}
 #toctitle {
-    display: block;
-    font-size: 28.5px;
-    line-height: 24px;
-    -webkit-margin-before: 0.83em;
-    -webkit-margin-after: 0.83em;
-    -webkit-margin-start: 0px;
-    -webkit-margin-end: 0px;
-    font-weight: bold;
+	display: block;
+	font-size: 28.5px;
+	line-height: 24px;
+	-webkit-margin-before: 0.83em;
+	-webkit-margin-after: 0.83em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	font-weight: bold;
 }
 img,object,embed {
 	max-width: 95%;
