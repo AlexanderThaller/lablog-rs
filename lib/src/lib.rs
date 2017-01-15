@@ -31,7 +31,7 @@ pub type Projects = DataSet<String>;
 pub type ProjectsNotes = DataMap<String, Notes>;
 type Notes = DataSet<Note>;
 
-#[derive(Debug,RustcEncodable,RustcDecodable,Eq)]
+#[derive(Debug,RustcEncodable,RustcDecodable,Eq,Clone)]
 pub struct Note {
     pub time_stamp: DateTime<UTC>,
     pub value: String,
@@ -55,16 +55,35 @@ impl PartialEq for Note {
     }
 }
 
-pub fn git_commit_note(datadir: &PathBuf, project: Project, note: &Note) {
+impl Default for Note {
+    fn default() -> Note {
+        Note {
+            time_stamp: UTC::now(),
+            value: String::new(),
+        }
+    }
+}
+
+pub fn git_commit_note(datadir: &PathBuf, project: Project, note: Option<&Note>, message: &str) {
     let project_path = normalize_project_path(project.clone(), "csv");
 
     githelper::add(datadir, Path::new(project_path.as_str()))
         .expect("can not add project file changes to git");
 
-    let commit_message = format!("{} - {} - added",
-                                 note.time_stamp,
-                                 project.expect("can not write commit message for the all projects \
-                                              project"));
+    let commit_message = match note {
+        Some(note) => {
+            format!("{} - {} - {}",
+                    note.time_stamp,
+                    project.expect("can not write commit message for the all projects project"),
+                    message)
+        }
+        None => {
+            format!("{} - {}",
+                    project.expect("can not write commit message for the all projects project"),
+                    message)
+        }
+    };
+
     githelper::commit(datadir, commit_message.as_str()).expect("can not commit note to repo");
 }
 
@@ -77,6 +96,35 @@ pub fn normalize_project_path(project: Project, extention: &str) -> String {
         }
         None => panic!("can not normalize the all projects project"),
     }
+}
+
+pub fn write_project(datadir: &PathBuf,
+                     project: Project,
+                     notes: &Notes,
+                     overwrite: bool)
+                     -> Option<()> {
+    let mut project_path = datadir.clone();
+    project_path.push(normalize_project_path(project, "csv"));
+
+    trace!("project_path: {:#?}", project_path);
+    fs::create_dir_all(project_path.parent().unwrap()).unwrap();
+
+    let mut file = if overwrite {
+        OpenOptions::new().write(true).truncate(true).create(true).open(&project_path).unwrap()
+    } else {
+        match OpenOptions::new().append(true).open(&project_path) {
+            Ok(file) => file,
+            Err(_) => OpenOptions::new().append(true).create(true).open(&project_path).unwrap(),
+        }
+    };
+
+    let mut wtr = csv::Writer::from_memory();
+    for note in notes {
+        wtr.encode(note).unwrap();
+        file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
+    }
+
+    Some(())
 }
 
 pub fn write_note(datadir: &PathBuf, project: Project, note: &Note) -> Option<()> {

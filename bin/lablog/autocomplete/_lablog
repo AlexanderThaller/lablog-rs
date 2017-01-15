@@ -334,6 +334,23 @@ _arguments -s -S -C \
 "1:: :_lablog_archive_commands" \
 && ret=0
 ;;
+(edit)
+_arguments -s -S -C \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"-h[Prints help information]" \
+"--help[Prints help information]" \
+"-V[Prints version information]" \
+"--version[Prints version information]" \
+"1:: :_lablog_edit_commands" \
+&& ret=0
+;;
 (help)
 _arguments -s -S -C \
 "-h[Prints help information]" \
@@ -399,6 +416,7 @@ _lablog_commands() {
 "repo:interact with the notes repository" \
 "search:search for given string in notes" \
 "archive:archive given project" \
+"edit:edit the selected note of the project" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
 "help:Prints this message or the help of the given subcommand(s)" \
@@ -418,6 +436,14 @@ _lablog_dates_commands() {
         "PROJECT:the project for which to list the notes for" \
     )
     _describe -t commands 'lablog dates commands' commands "$@"
+}
+(( $+functions[_lablog_edit_commands] )) ||
+_lablog_edit_commands() {
+    local commands; commands=(
+        "PROJECT:the project for which to edit the note" \
+"NOTE_ID:the id of the note to edit (select from the timestamps command)" \
+    )
+    _describe -t commands 'lablog edit commands' commands "$@"
 }
 (( $+functions[_lablog_help_commands] )) ||
 _lablog_help_commands() {

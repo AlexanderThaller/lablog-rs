@@ -35,9 +35,11 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+use std::io::prelude::*;
 use chrono::*;
 use clap::App;
 use clap::ArgMatches as Args;
+use lablog_lib::archive_project;
 use lablog_lib::file_to_string;
 use lablog_lib::filter_notes_by_timestamp;
 use lablog_lib::format_projects_notes;
@@ -49,12 +51,13 @@ use lablog_lib::Note;
 use lablog_lib::ProjectsNotes;
 use lablog_lib::try_multiple_time_parser;
 use lablog_lib::write_note;
-use lablog_lib::archive_project;
+use lablog_lib::write_project;
 use log::LogLevel;
 use regex::Regex;
 use std::collections::BTreeMap as DataMap;
 use std::collections::BTreeSet as DataSet;
 use std::env;
+use std::fs::File;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -102,6 +105,7 @@ fn run(args: Args, options: Options) {
                 "search" => run_search(command.matches, options),
                 "timeline" => run_timeline(command.matches, options),
                 "archive" => run_archive(command.matches, options),
+                "edit" => run_edit(command.matches, options),
                 _ => {
                     error!("do not know what to do with this command: {}",
                            command.name.as_str())
@@ -132,7 +136,7 @@ fn run_note(args: Args, options: Options) {
     let project = Some(String::from(args.value_of("project").unwrap()));
 
     let text = if args.is_present("editor") {
-        string_from_editor()
+        string_from_editor("")
     } else {
         match args.value_of("file") {
             Some(file_path) => {
@@ -163,7 +167,7 @@ fn run_note(args: Args, options: Options) {
     };
 
     if write_note(&options.datadir, project.clone(), &note).is_some() {
-        git_commit_note(&options.datadir, project.clone(), &note)
+        git_commit_note(&options.datadir, project.clone(), Some(&note), "added")
     }
 }
 
@@ -308,7 +312,50 @@ fn run_timeline(args: Args, options: Options) {
     println!("{}", get_timeline_for_notes(notes));
 }
 
-fn string_from_editor() -> String {
+fn run_edit(args: Args, options: Options) {
+    let mut project_notes = get_filtered_notes(&args, &options);
+
+    if project_notes.len() != 1 {
+        panic!("can not edit multiple projects at once")
+    }
+
+    let note_id: usize =
+        args.value_of("note_id").unwrap().parse().expect("can not convert note_id to integer");
+
+    for (project, mut notes) in project_notes.clone() {
+        let mut oldnote = Note::default();
+        let mut newnote = Note::default();
+        if notes.len() - 1 < note_id {
+            panic!("selected note_id is bigger than the available notes")
+        }
+
+        for (i, note) in notes.clone().into_iter().enumerate() {
+            if i == note_id {
+                let newval = string_from_editor(note.value.as_str());
+
+                newnote = Note {
+                    time_stamp: note.time_stamp,
+                    value: newval,
+                };
+
+                oldnote = note.clone();
+            }
+        }
+
+        notes.remove(&oldnote);
+        notes.insert(newnote);
+
+        project_notes.remove(&project);
+        project_notes.insert(project, notes);
+    }
+
+    for (project, notes) in project_notes.clone() {
+        write_project(&options.datadir, Some(project.clone()), &notes, true);
+        git_commit_note(&options.datadir, Some(project.clone()), None, "edited")
+    }
+}
+
+fn string_from_editor(prepoluate: &str) -> String {
     let tmpdir = TempDir::new("lablog_tmp").unwrap();
     let tmppath = tmpdir.path().join("note.asciidoc");
     let editor = match env::var("VISUAL") {
@@ -320,6 +367,12 @@ fn string_from_editor() -> String {
             }
         }
     };
+
+    {
+        let mut f = File::create(tmppath.display().to_string())
+            .expect("can not open tmp editor file to prepoluate with string");
+        f.write_all(prepoluate.as_bytes()).expect("can not prepoluate editor tmp file");
+    }
 
     let mut editor_command = Command::new(editor);
     editor_command.arg(tmppath.display().to_string());

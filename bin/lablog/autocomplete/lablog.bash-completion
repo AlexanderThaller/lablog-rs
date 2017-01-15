@@ -19,6 +19,9 @@ _lablog() {
             dates)
                 cmd+="_dates"
                 ;;
+            edit)
+                cmd+="_edit"
+                ;;
             help)
                 cmd+="_help"
                 ;;
@@ -62,7 +65,7 @@ _lablog() {
 
     case "${cmd}" in
         lablog)
-            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes timestamps projects dates timeline repo search archive help"
+            opts=" -l -D -h -V  --loglevel --datadir --help --version   note notes timestamps projects dates timeline repo search archive edit help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
                 return 0
@@ -132,6 +135,21 @@ _lablog() {
                     COMPREPLY=("<timestamp>")
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        lablog_edit)
+            opts=" -h -V  --help --version  <project> <id> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
                 *)
                     COMPREPLY=()
                     ;;

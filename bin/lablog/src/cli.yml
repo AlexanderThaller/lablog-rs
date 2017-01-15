@@ -227,3 +227,18 @@ subcommands:
             help: archive the project and all subprojects
             long: recursive
             short: r
+  - edit:
+      about: edit the selected note of the project
+      args:
+        - project:
+            help: the project for which to edit the note
+            takes_value: true
+            value_name: project
+            required: true
+            index: 1
+        - note_id:
+            help: the id of the note to edit (select from the timestamps command)
+            takes_value: true
+            value_name: id
+            required: true
+            index: 2
