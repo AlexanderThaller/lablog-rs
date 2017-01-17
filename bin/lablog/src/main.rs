@@ -183,7 +183,8 @@ fn run_timestamps(args: Args, options: Options) {
         println!("{}", project);
 
         for (i, note) in notes.iter().enumerate() {
-            println!("{}\t{}", i, note.time_stamp)
+            // present timestamp numbering from 1 upwards
+            println!("{}\t{}", i + 1, note.time_stamp)
         }
 
         println!("");
@@ -321,6 +322,9 @@ fn run_edit(args: Args, options: Options) {
 
     let note_id: usize =
         args.value_of("note_id").unwrap().parse().expect("can not convert note_id to integer");
+
+    // the user selects from 1 upwards we have to count from 0 upwards
+    let note_id = note_id - 1;
 
     for (project, mut notes) in project_notes.clone() {
         let mut oldnote = Note::default();
