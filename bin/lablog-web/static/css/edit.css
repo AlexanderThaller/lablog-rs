@@ -46,6 +46,18 @@ body {
 	font-family: sans-serif;
 	font-size: 19px;
 	line-height: 24px;
+	background: #fff8e5;
+    line-height: 1.5;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+a:hover {
+	border-bottom: 1px solid #999;
+}
+a {
+	color: #00408f;
+	text-decoration: none;
+	border-bottom: 1px solid #f2ecda;
 }
 pre,xmp,plaintext,listing {
 	font-size: 16px;
@@ -57,6 +69,7 @@ p {
 	-ms-hyphens: auto;
 	-webkit-hyphens: auto;
 	hyphens: auto;
+  hyphenate: auto;
 }
 table {
 	border-collapse: collapse;
@@ -77,6 +90,10 @@ table.tableblock thead,table.tableblock tfoot {
 	border-bottom: solid 1px;
 	border-top: solid 2px;
 }
+tr:hover,table.tableblock:hover tr.even:hover,table.tableblock:hover tr.alt:hover,table.tableblock:hover tr:nth-of-type(even):hover {
+	background: rgba(0, 0, 0, .20);
+}
+
 dl dt {
 	margin-bottom: .3125em;
 	font-weight: bold;
@@ -121,8 +138,7 @@ table tr td i {
 	font-style: italic;
 }
 #projects_list {
-    /* Remove default list styling */
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-  }
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+}
