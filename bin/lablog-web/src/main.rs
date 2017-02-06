@@ -21,7 +21,6 @@
 // SOFTWARE.
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(rocket_codegen)]
 
 extern crate chrono;
@@ -285,7 +284,7 @@ fn webapp_note_add(noteform: Form<NotesForm>) -> Redirect {
 
     let datadir = get_datadir();
     if write_note(&datadir, Some(String::from(project)), &note).is_some() {
-        git_commit_note(&datadir, Some(String::from(project)), &note)
+        git_commit_note(&datadir, Some(String::from(project)), Some(&note), "added")
     }
 
     if let Err(err) = githelper::sync(datadir.as_path()) {
