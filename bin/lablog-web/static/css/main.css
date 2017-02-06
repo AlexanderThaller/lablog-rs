@@ -14,7 +14,7 @@
 
 input {
 	font-size: 19px;
-	height: 19px;
+	height: 30px;
 	width: 90%;
 }
 textarea {
@@ -119,4 +119,9 @@ table tr td i {
 }
 .admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title {
 	font-style: italic;
+}
+#projects_list {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
 }

@@ -14,7 +14,7 @@
 
 input {
 	font-size: 19px;
-	height: 19px;
+	height: 30px;
 	width: 90%;
 }
 textarea {
@@ -25,8 +25,8 @@ textarea {
 .sectionbody {
 	max-width: 35em;
 }
-code{
-  font-size: 16px;
+code {
+	font-size: 16px;
 }
 #toctitle {
 	display: block;
@@ -120,3 +120,9 @@ table tr td i {
 .admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title {
 	font-style: italic;
 }
+#projects_list {
+    /* Remove default list styling */
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
