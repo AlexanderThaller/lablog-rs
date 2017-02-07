@@ -18,7 +18,7 @@
     <hr>
 
     <h1>Projects</h1>
-    <input type="text" id="project_filter" onkeyup="filter_projects()" placeholder="Filter projects...">
+    <input type="text" id="project_filter" onkeyup="filter_projects()" placeholder="Filter projects..." autofocus>
 
     <p>
       <ul id="projects_list">
