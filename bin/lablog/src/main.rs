@@ -19,8 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#![feature(insert_str)]
-
 extern crate chrono;
 extern crate githelper;
 extern crate lablog_lib;
@@ -275,13 +273,13 @@ fn run_search(args: Args, options: Options) {
                 if re.is_match(line) {
                     debug!("match on line: {}", line);
 
-                    let find = re.find(line).unwrap();
+                    let (start, end) = re.find(line).unwrap();
 
-                    debug!("find: {:#?}", find);
+                    debug!("(start, end): ({:#?}, {:#?})", start, end);
 
                     let mut replaced = String::from(line);
-                    replaced.insert_str(find.end(), "\x1B[0m\x1B[0m");
-                    replaced.insert_str(find.start(), "\x1B[1m\x1B[31m");
+                    replaced.insert_str(end, "\x1B[0m\x1B[0m");
+                    replaced.insert_str(start, "\x1B[1m\x1B[31m");
 
                     debug!("replaced: {}", replaced);
 
