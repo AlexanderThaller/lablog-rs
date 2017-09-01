@@ -110,18 +110,31 @@ pub fn write_project(datadir: &PathBuf,
     fs::create_dir_all(project_path.parent().unwrap()).unwrap();
 
     let mut file = if overwrite {
-        OpenOptions::new().write(true).truncate(true).create(true).open(&project_path).unwrap()
+        OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(&project_path)
+            .unwrap()
     } else {
         match OpenOptions::new().append(true).open(&project_path) {
             Ok(file) => file,
-            Err(_) => OpenOptions::new().append(true).create(true).open(&project_path).unwrap(),
+            Err(_) => {
+                OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(&project_path)
+                    .unwrap()
+            }
         }
     };
 
     let mut wtr = csv::Writer::from_memory();
     for note in notes {
-        wtr.encode(note).unwrap();
-        file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
+        wtr.serialize(note.time_stamp, note.value)
+            .chain_err(|| "can not serialize note")?;
+        file.write_fmt(format_args!("{}", wtr.as_string()))
+            .unwrap();
     }
 
     Some(())
@@ -141,12 +154,19 @@ pub fn write_note(datadir: &PathBuf, project: Project, note: &Note) -> Option<()
 
     let mut file = match OpenOptions::new().append(true).open(&project_path) {
         Ok(file) => file,
-        Err(_) => OpenOptions::new().append(true).create(true).open(&project_path).unwrap(),
+        Err(_) => {
+            OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(&project_path)
+                .unwrap()
+        }
     };
 
     let mut wtr = csv::Writer::from_memory();
     wtr.encode(note).unwrap();
-    file.write_fmt(format_args!("{}", wtr.as_string())).unwrap();
+    file.write_fmt(format_args!("{}", wtr.as_string()))
+        .unwrap();
 
     Some(())
 }
@@ -159,12 +179,13 @@ pub fn get_projects(datadir: &PathBuf, project: Project) -> Projects {
 
     trace!("ok_walkdir: {:#?}", ok_walkdir);
 
-    let stripped_paths: Vec<PathBuf> = ok_walkdir.iter()
+    let stripped_paths: Vec<PathBuf> = ok_walkdir
+        .iter()
         .filter(|e| e.path().is_file())
         .filter(|e| match e.path().extension() {
-            Some(ext) => ext.to_str().unwrap() == "csv",
-            None => false,
-        })
+                    Some(ext) => ext.to_str().unwrap() == "csv",
+                    None => false,
+                })
         .map(|e| e.path().strip_prefix(&datadir))
         .filter_map(|e| e.ok())
         .filter(|e| !e.to_str().unwrap().starts_with('.'))
@@ -173,7 +194,8 @@ pub fn get_projects(datadir: &PathBuf, project: Project) -> Projects {
 
     trace!("stripped_paths: {:#?}", stripped_paths);
 
-    let projects: Projects = stripped_paths.into_iter()
+    let projects: Projects = stripped_paths
+        .into_iter()
         .map(|e| e.to_str().unwrap().replace("/", PROJECT_SEPPERATOR))
         .collect();
 
@@ -186,7 +208,10 @@ pub fn filter_projects(projects: Projects, project: Project) -> Projects {
     match project {
         Some(project) => {
             let re = Regex::new(project.as_str()).unwrap();
-            projects.into_iter().filter(|project| re.is_match(project)).collect()
+            projects
+                .into_iter()
+                .filter(|project| re.is_match(project))
+                .collect()
         }
         None => projects,
     }
@@ -211,7 +236,8 @@ pub fn get_timeline_for_notes(notes: ProjectsNotes) -> String {
     let mut timeline = DataMap::default();
     for (project, notes) in notes {
         for note in notes {
-            timeline.entry(note.time_stamp.date())
+            timeline
+                .entry(note.time_stamp.date())
                 .or_insert_with(DataMap::default)
                 .entry(project.clone())
                 .or_insert_with(DataMap::default)
@@ -255,7 +281,9 @@ pub fn get_projects_notes(datadir: &PathBuf, projects: Projects) -> ProjectsNote
 
 fn get_notes(project_path: PathBuf) -> Notes {
     let mut map = DataSet::default();
-    let mut rdr = csv::Reader::from_file(project_path).unwrap().has_headers(false);
+    let mut rdr = csv::Reader::from_file(project_path)
+        .unwrap()
+        .has_headers(false);
 
     for record in rdr.decode() {
         let note: Note = record.unwrap();
@@ -303,7 +331,8 @@ pub fn filter_notes_by_timestamp(notes: ProjectsNotes,
 
     let mut filtered_notes = DataMap::default();
     for (project, notes) in notes {
-        let filternotes: DataSet<_> = notes.into_iter()
+        let filternotes: DataSet<_> = notes
+            .into_iter()
             .filter(|note| {
                 trace!("filter note: {:#?}", note);
                 trace!("timestamp: {:#?}", timestamp);
@@ -345,7 +374,8 @@ pub fn try_multiple_time_parser(input: &str) -> ParseResult<DateTime<UTC>> {
 
     trace!("time_parser input after natural timestamp: {}", input);
 
-    input.parse()
+    input
+        .parse()
         .or(UTC.datetime_from_str(input.as_str(), "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{}:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
         .or(UTC.datetime_from_str(format!("{}:00:00", input).as_str(), "%Y-%m-%d %H:%M:%S"))
@@ -460,8 +490,10 @@ pub fn archive_project(datadir: &PathBuf, projects: Projects, project: Project, 
     }
 
     let new_path = get_archive_path(datadir, project.clone());
-    fs::create_dir_all(new_path.parent().expect("can not get parent directory of archive path"))
-        .expect("can not create folder for archive path");
+    fs::create_dir_all(new_path
+                           .parent()
+                           .expect("can not get parent directory of archive path"))
+            .expect("can not create folder for archive path");
 
     let mut file = match OpenOptions::new().append(true).open(&new_path) {
         Ok(file) => file,
@@ -476,7 +508,8 @@ pub fn archive_project(datadir: &PathBuf, projects: Projects, project: Project, 
 
     let old_data = file_to_string(&old_path).expect("can not read data from project for archiving");
 
-    file.write_all(old_data.as_bytes()).expect("can not write to archive file");
+    file.write_all(old_data.as_bytes())
+        .expect("can not write to archive file");
 
     fs::remove_file(old_path.clone()).expect("can not remove old file after archiving");
 
